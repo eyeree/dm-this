@@ -3,7 +3,19 @@
  */
 export interface LLMMessage {
   role: 'user' | 'assistant' | 'system';
-  content: string;
+  content: string | LLMMessageContent[];
+}
+
+/**
+ * Content type for LLM messages with mixed text and images
+ */
+export interface LLMMessageContent {
+  type: 'text' | 'image_url';
+  text?: string;
+  image_url?: {
+    url: string;
+    detail?: 'low' | 'high' | 'auto';
+  };
 }
 
 /**
@@ -55,4 +67,10 @@ export interface LLMProvider {
    * @returns The model name
    */
   getModelName(): string;
+  
+  /**
+   * Check if the provider supports image inputs
+   * @returns Boolean indicating if images are supported
+   */
+  supportsImages(): boolean;
 }

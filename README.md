@@ -6,23 +6,6 @@ rules provided as PDF documents. Using this source material, DM-This plays the r
 scene setting visuals and combat battle maps as needed. One or more players can participate in a session via a text chat
 style interface and by moving their character tokens on the battle map during combat.
 
-## AI Integration
-
-DM-This uses Anthropic's Claude API to power its AI capabilities, including:
-
-- General chat assistance for game-related questions
-- Dynamic scene description generation
-- NPC dialogue creation based on character personality and situation
-- Cinematic combat narration
-
-To use the Claude API features, you need to:
-
-1. Get an API key from [Anthropic's website](https://www.anthropic.com/)
-2. Add your API key to the `.env` file in the project root:
-   ```
-   ANTHROPIC_API_KEY=your_api_key_here
-   ```
-
 ## Architecture
 
 DM-This is implemented as a NodeJS service that provides UI via a web browser. 

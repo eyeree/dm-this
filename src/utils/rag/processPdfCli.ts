@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import '../utils/config/load';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Command } from 'commander';

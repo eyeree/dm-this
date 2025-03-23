@@ -39,10 +39,31 @@ export class OpenAIProvider implements LLMProvider {
   ): Promise<LLMResponse> {
     try {
       // Format messages for OpenAI API
-      const formattedMessages = messages.map(msg => ({
-        role: msg.role,
-        content: msg.content,
-      }));
+      const formattedMessages = messages.map(msg => {
+        // Handle string content
+        if (typeof msg.content === 'string') {
+          return {
+            role: msg.role,
+            content: msg.content,
+          };
+        }
+        
+        // Handle array content (text and images)
+        return {
+          role: msg.role,
+          content: msg.content.map(content => {
+            if (content.type === 'text') {
+              return { type: 'text', text: content.text };
+            } else if (content.type === 'image_url') {
+              return {
+                type: 'image_url',
+                image_url: content.image_url,
+              };
+            }
+            return content;
+          }),
+        };
+      });
       
       // Add system message if provided
       if (systemPrompt) {
@@ -55,7 +76,7 @@ export class OpenAIProvider implements LLMProvider {
       // Call OpenAI API
       const response = await this.client.chat.completions.create({
         model: this.model,
-        messages: formattedMessages,
+        messages: formattedMessages as any, // Type assertion to handle complex message format
         max_tokens: this.maxTokens,
       });
       
@@ -92,5 +113,14 @@ export class OpenAIProvider implements LLMProvider {
    */
   getModelName(): string {
     return this.model;
+  }
+  
+  /**
+   * Check if the provider supports image inputs
+   * @returns Boolean indicating if images are supported
+   */
+  supportsImages(): boolean {
+    // Only GPT-4 Vision models support images
+    return this.model.includes('gpt-4') || this.model.includes('gpt-4o');
   }
 }
