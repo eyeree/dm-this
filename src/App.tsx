@@ -55,19 +55,18 @@ const App: React.FC = () => {
     setError(null);
     
     try {
-      const response = await fetch('/api/claude/message', {
+      const response = await fetch('/api/llm/message', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages: [...messages, newMessage],
-          systemPrompt: 'You are a helpful D&D Dungeon Master assistant.',
+          messages: [...messages, newMessage]
         }),
       });
       
       if (!response.ok) {
-        throw new Error('Failed to get response from Claude');
+        throw new Error('Failed to get response from LLM');
       }
       
       const data = await response.json();
@@ -88,7 +87,7 @@ const App: React.FC = () => {
     setError(null);
     
     try {
-      const response = await fetch('/api/claude/scene', {
+      const response = await fetch('/api/llm/scene', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -119,7 +118,7 @@ const App: React.FC = () => {
     setError(null);
     
     try {
-      const response = await fetch('/api/claude/npc-dialogue', {
+      const response = await fetch('/api/llm/npc-dialogue', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -151,7 +150,7 @@ const App: React.FC = () => {
     setError(null);
     
     try {
-      const response = await fetch('/api/claude/combat', {
+      const response = await fetch('/api/llm/combat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -216,19 +215,19 @@ const App: React.FC = () => {
             <div className="messages">
               {messages.length === 0 ? (
                 <div className="empty-state">
-                  <p>Start a conversation with Claude to test the API integration.</p>
+                  <p>Start a conversation with the LLM to test the API integration.</p>
                 </div>
               ) : (
                 messages.map((msg, index) => (
                   <div key={index} className={`message ${msg.role}`}>
-                    <div className="message-role">{msg.role === 'user' ? 'You' : 'Claude'}</div>
+                    <div className="message-role">{msg.role === 'user' ? 'You' : 'LLM'}</div>
                     <div className="message-content">{msg.content}</div>
                   </div>
                 ))
               )}
               {isLoading && (
                 <div className="message assistant loading">
-                  <div className="message-role">Claude</div>
+                  <div className="message-role">LLM</div>
                   <div className="message-content">Thinking...</div>
                 </div>
               )}

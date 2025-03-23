@@ -1,19 +1,7 @@
+import '../utils/config/load';
 import express from 'express';
 import path from 'path';
-import dotenv from 'dotenv';
-import { 
-  sendMessageToClaude, 
-  generateSceneDescription, 
-  generateNPCDialogue, 
-  generateCombatNarration
-} from '../services/claude';
-
-// Load environment variables
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
-
-// Verify environment variables are loaded
-console.log('Environment variables loaded:');
-console.log('ANTHROPIC_API_KEY:', process.env.ANTHROPIC_API_KEY ? 'API key is set' : 'API key is not set');
+import { LLMMessage, sendMessage } from '../services/llm';
 
 // Use process.cwd() instead of __dirname
 const rootDir = process.cwd();
@@ -31,32 +19,40 @@ app.get('/api/status', (_req, res) => {
     status: 'ok',
     message: 'DM-This API is running',
     version: '0.1.0',
-    features: ['claude']
+    features: ['llm']
   });
 });
 
-// Claude API endpoints
-app.post('/api/claude/message', async (req, res) => {
+// LLM API endpoints
+app.post('/api/llm/message', async (req, res) => {
   try {
-    console.log('Received request to /api/claude/message:', req.body);
-    const { messages, systemPrompt, model } = req.body;
+    console.log('Received request to /api/llm/message:', req.body);
+    const { messages, systemPrompt } = req.body;
     
     if (!messages || !Array.isArray(messages)) {
       console.log('Invalid request: messages array is required');
       return res.status(400).json({ error: 'Messages array is required' });
     }
     
-    console.log('Sending request to Claude API...');
-    const response = await sendMessageToClaude(messages, systemPrompt, model);
-    console.log('Received response from Claude API:', response);
+    console.log('Sending request to LLM API...');
+    
+    // Convert messages to LLMMessage format
+    const llmMessages: LLMMessage[] = messages.map(msg => ({
+      role: msg.role,
+      content: msg.content,
+    }));
+    
+    const response = await sendMessage(llmMessages, systemPrompt);
+    
+    console.log('Received response from LLM API:', response);
     res.json(response);
   } catch (error) {
-    console.error('Error in Claude message endpoint:', error);
-    res.status(500).json({ error: 'Failed to get response from Claude' });
+    console.error('Error in LLM message endpoint:', error);
+    res.status(500).json({ error: 'Failed to get response from LLM' });
   }
 });
 
-app.post('/api/claude/scene', async (req, res) => {
+app.post('/api/llm/scene', async (req, res) => {
   try {
     const { context } = req.body;
     
@@ -64,15 +60,27 @@ app.post('/api/claude/scene', async (req, res) => {
       return res.status(400).json({ error: 'Context is required' });
     }
     
-    const description = await generateSceneDescription(context);
-    res.json({ description });
+    const systemPrompt = `You are an expert Dungeon Master for a D&D game. 
+    Create vivid, engaging scene descriptions that help players visualize the environment, 
+    NPCs, and situation they're in. Include sensory details and atmosphere.`;
+
+    const messages: LLMMessage[] = [
+      {
+        role: 'user',
+        content: `Please generate a detailed scene description for the following D&D scenario:\n\n${context}`,
+      },
+    ];
+
+    const response = await sendMessage(messages, systemPrompt);
+    
+    res.json({ description: response.message.content });
   } catch (error) {
     console.error('Error generating scene description:', error);
     res.status(500).json({ error: 'Failed to generate scene description' });
   }
 });
 
-app.post('/api/claude/npc-dialogue', async (req, res) => {
+app.post('/api/llm/npc-dialogue', async (req, res) => {
   try {
     const { npcInfo, situation } = req.body;
     
@@ -80,15 +88,27 @@ app.post('/api/claude/npc-dialogue', async (req, res) => {
       return res.status(400).json({ error: 'NPC info and situation are required' });
     }
     
-    const dialogue = await generateNPCDialogue(npcInfo, situation);
-    res.json({ dialogue });
+    const systemPrompt = `You are an expert at roleplaying diverse D&D characters.
+    Create authentic dialogue that reflects each character's personality, background, knowledge, and goals.
+    Maintain consistent character voice and include appropriate mannerisms or speech patterns.`;
+
+    const messages: LLMMessage[] = [
+      {
+        role: 'user',
+        content: `Generate dialogue for the following NPC in this situation:\n\nNPC INFO: ${npcInfo}\n\nSITUATION: ${situation}`,
+      },
+    ];
+
+    const response = await sendMessage(messages, systemPrompt);
+    
+    res.json({ dialogue: response.message.content });
   } catch (error) {
     console.error('Error generating NPC dialogue:', error);
     res.status(500).json({ error: 'Failed to generate NPC dialogue' });
   }
 });
 
-app.post('/api/claude/combat', async (req, res) => {
+app.post('/api/llm/combat', async (req, res) => {
   try {
     const { combatState } = req.body;
     
@@ -96,8 +116,20 @@ app.post('/api/claude/combat', async (req, res) => {
       return res.status(400).json({ error: 'Combat state is required' });
     }
     
-    const narration = await generateCombatNarration(combatState);
-    res.json({ narration });
+    const systemPrompt = `You are an expert Dungeon Master narrating D&D combat.
+    Create exciting, dynamic descriptions of combat actions and their results.
+    Focus on making combat feel cinematic and consequential while clearly communicating what happens.`;
+
+    const messages: LLMMessage[] = [
+      {
+        role: 'user',
+        content: `Please narrate the following combat situation in an engaging way:\n\n${combatState}`,
+      },
+    ];
+
+    const response = await sendMessage(messages, systemPrompt);
+    
+    res.json({ narration: response.message.content });
   } catch (error) {
     console.error('Error generating combat narration:', error);
     res.status(500).json({ error: 'Failed to generate combat narration' });
@@ -111,5 +143,4 @@ app.get('*', (_req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
-  console.log(`Claude API integration is ${process.env.ANTHROPIC_API_KEY ? 'enabled' : 'disabled'}`);
 });

@@ -4,11 +4,8 @@ import * as pdfjsLib from 'pdfjs-dist';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { Document } from '@langchain/core/documents';
 import { HNSWLib } from "@langchain/community/vectorstores/hnswlib";
-import { ChatAnthropic } from '@langchain/anthropic';
-import { RunnableSequence } from '@langchain/core/runnables';
-import { StringOutputParser } from '@langchain/core/output_parsers';
-import { PromptTemplate } from '@langchain/core/prompts';
 import { OpenAI } from 'openai';
+import { sendMessage } from '../../services/llm';
 
 // Set the PDF.js worker path
 pdfjsLib.GlobalWorkerOptions.workerSrc = path.resolve(
@@ -131,14 +128,18 @@ export async function splitTextIntoChunks(
  * @param apiKey OpenAI API key
  * @returns CustomOpenAIEmbeddings instance
  */
-async function createOpenAIEmbeddings(apiKey: string) {
+async function createOpenAIEmbeddings() {
   
   // Create a custom embeddings class that uses OpenAI's API
   class CustomOpenAIEmbeddings {
     private client: OpenAI;
     private model: string;
     
-    constructor(apiKey: string, model: string = 'text-embedding-3-small') {
+    constructor(model: string = 'text-embedding-3-small') {
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        throw new Error('OPENAI_API_KEY environment variable is not set');
+      }
       this.client = new OpenAI({ apiKey });
       this.model = model;
     }
@@ -184,7 +185,7 @@ async function createOpenAIEmbeddings(apiKey: string) {
     }
   }
   
-  return new CustomOpenAIEmbeddings(apiKey);
+  return new CustomOpenAIEmbeddings();
 }
 
 /**
@@ -219,12 +220,11 @@ async function saveVectorStore(
  * @returns HNSWLib vector store with embeddings
  */
 export async function createVectorStore(
-  chunks: Document<ChunkMetadata>[],
-  apiKey: string
+  chunks: Document<ChunkMetadata>[]
 ): Promise<HNSWLib> {
   try {
     // Initialize embeddings with OpenAI
-    const embeddings = await createOpenAIEmbeddings(apiKey);
+    const embeddings = await createOpenAIEmbeddings();
     
     // Create vector store from documents
     console.log('Creating vector store with embeddings...');
@@ -245,12 +245,11 @@ export async function createVectorStore(
  * @returns HNSWLib vector store
  */
 export async function loadVectorStore(
-  storePath: string,
-  apiKey: string
+  storePath: string
 ): Promise<HNSWLib> {
   try {
     // Initialize embeddings with OpenAI
-    const embeddings = await createOpenAIEmbeddings(apiKey);
+    const embeddings = await createOpenAIEmbeddings();
     
     console.log(`Loading vector store from ${storePath}`);
     
@@ -310,7 +309,6 @@ export async function processPDFFile(
  */
 export async function processDirectory(
   directoryPath: string,
-  apiKey: string,
   chunkSize: number = 1000,
   chunkOverlap: number = 200
 ): Promise<ProcessedPDF> {
@@ -338,7 +336,7 @@ export async function processDirectory(
     console.log(`Processed ${files.length} PDFs with ${allChunks.length} total chunks`);
     
     // Create vector store from all chunks
-    const vectorStore = await createVectorStore(allChunks, apiKey);
+    const vectorStore = await createVectorStore(allChunks);
     
     // Save vector store to the hnsw directory
     const hnswPath = path.join(directoryPath, 'hnsw');
@@ -358,8 +356,7 @@ export async function processDirectory(
  * @returns HNSWLib vector store
  */
 export async function loadVectorStoreFromDirectory(
-  directoryPath: string,
-  apiKey: string
+  directoryPath: string
 ): Promise<HNSWLib> {
   try {
     const hnswPath = path.join(directoryPath, 'hnsw');
@@ -368,7 +365,7 @@ export async function loadVectorStoreFromDirectory(
       throw new Error(`Vector store not found at ${hnswPath}. Please process the directory first.`);
     }
     
-    return await loadVectorStore(hnswPath, apiKey);
+    return await loadVectorStore(hnswPath);
   } catch (error) {
     console.error('Error loading vector store from directory:', error);
     throw error;
@@ -387,13 +384,11 @@ export async function loadVectorStoreFromDirectory(
 export async function queryWithRAG(
   query: string,
   directoryPath: string,
-  apiKey: string,
-  embeddingsApiKey?: string,
   maxResults: number = 5
 ): Promise<string> {
   try {
     // Load the vector store
-    const vectorStore = await loadVectorStoreFromDirectory(directoryPath, embeddingsApiKey || apiKey);
+    const vectorStore = await loadVectorStoreFromDirectory(directoryPath);
     
     // Search for relevant documents
     const relevantDocs = await vectorStore.similaritySearch(query, maxResults);
@@ -406,41 +401,28 @@ export async function queryWithRAG(
       })
       .join('\n\n');
     
-    // Create the prompt template
-    const promptTemplate = PromptTemplate.fromTemplate(`
+    // Create the system prompt
+    const systemPrompt = `
 You are an expert on Dungeons & Dragons 3.5 SRD (System Reference Document).
 Answer the following question based on the provided context.
-If you don't know the answer or it's not in the context, say so - don't make up information.
+If you don't know the answer or it's not in the context, say so - don't make up information.`;
 
+    // Create the user message with context and query
+    const userMessage = `
 Context:
-{context}
+${context}
 
-Question: {query}
+Question: ${query}
 
-Answer:
-`);
+Answer:`;
+
+    // Use our LLM abstraction layer to send the message
+    const response = await sendMessage(
+      [{ role: 'user', content: userMessage }],
+      systemPrompt
+    );
     
-    // Initialize the Claude model
-    const model = new ChatAnthropic({
-      apiKey,
-      modelName: 'claude-3-opus-20240229',
-    });
-    
-    // Create the RAG pipeline
-    const ragChain = RunnableSequence.from([
-      {
-        context: () => context,
-        query: () => query,
-      },
-      promptTemplate,
-      model,
-      new StringOutputParser(),
-    ]);
-    
-    // Execute the chain
-    const response = await ragChain.invoke({});
-    
-    return response;
+    return response.message.content;
   } catch (error) {
     console.error('Error querying with RAG:', error);
     throw error;

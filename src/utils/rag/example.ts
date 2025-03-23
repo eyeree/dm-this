@@ -8,19 +8,6 @@ dotenv.config();
 // Example usage of the PDF RAG utility
 async function main() {
   try {
-    // Get API keys from environment variables
-    const openaiApiKey = process.env.OPENAI_API_KEY;
-    const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
-    
-    if (!openaiApiKey) {
-      console.error('Error: OPENAI_API_KEY environment variable is required for embeddings');
-      process.exit(1);
-    }
-    
-    if (!anthropicApiKey) {
-      console.error('Error: ANTHROPIC_API_KEY environment variable is required for LLM');
-      process.exit(1);
-    }
     
     // Path to the directory containing PDF files
     const pdfDir = path.resolve(process.cwd(), 'content/rules/SRD3_5');
@@ -29,7 +16,6 @@ async function main() {
     console.log(`Processing PDFs in directory: ${pdfDir}`);
     const { chunks } = await processDirectory(
       pdfDir,
-      openaiApiKey,
       1000, // chunk size
       200   // chunk overlap
     );
@@ -41,12 +27,10 @@ async function main() {
     const query = 'What are the rules for grappling?';
     console.log(`\nQuerying: "${query}"`);
     
-    // Query with RAG (using Anthropic API key for LLM)
+    // Query with RAG
     const response = await queryWithRAG(
       query,
       pdfDir,
-      anthropicApiKey,
-      openaiApiKey,
       5 // max results
     );
     
@@ -57,12 +41,10 @@ async function main() {
     const query2 = 'How does spell resistance work?';
     console.log(`\nQuerying: "${query2}"`);
     
-    // Query with RAG (using Anthropic API key for LLM)
+    // Query with RAG
     const response2 = await queryWithRAG(
       query2,
       pdfDir,
-      anthropicApiKey,
-      openaiApiKey,
       5 // max results
     );
     
