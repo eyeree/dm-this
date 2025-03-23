@@ -1,0 +1,18 @@
+# Sample Campaign Configuration
+
+# Identifies the module used for this campaign
+module-id: sample-module
+
+# Player characters participating in the campaign
+player-characters:
+  - name: Blageron
+    player: Player1
+  - name: Forth
+    player: Player2
+  - name: Simone
+    player: Player3
+
+# Non-player characters in the campaign
+non-player-characters:
+  - name: Rolf
+  - name: John
