@@ -1,8 +1,0 @@
-# Environment variables
-.env
-
-# Output data
-/rag-data/
-
-# Node.js
-node_modules/
