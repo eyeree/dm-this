@@ -1,13 +1,16 @@
-import '../utils/config/load';
+import '../util/config/load';
 import express from 'express';
 import path from 'path';
 import { LLMMessage, sendMessage } from '../services/llm';
+import { getRuleSetContext } from '../util/rule-set';
 
 // Use process.cwd() instead of __dirname
 const rootDir = process.cwd();
 
 const app = express();
 const PORT = process.env.PORT || 3002;
+
+const rule_set_directory = process.env.DM_THIS_RULE_SET || 'content/rules/SRD3_5'
 
 // Middleware
 app.use(express.json());
@@ -23,11 +26,15 @@ app.get('/api/status', (_req, res) => {
   });
 });
 
+function getContextContent(messages: LLMMessage[]): string {
+  return messages.slice(-4).map(msg => msg.content).join('\n');
+}
+
 // LLM API endpoints
 app.post('/api/llm/message', async (req, res) => {
   try {
     console.log('Received request to /api/llm/message:', req.body);
-    const { messages, systemPrompt } = req.body;
+    const { messages } = req.body;
     
     if (!messages || !Array.isArray(messages)) {
       console.log('Invalid request: messages array is required');
@@ -41,7 +48,24 @@ app.post('/api/llm/message', async (req, res) => {
       role: msg.role,
       content: msg.content,
     }));
+
+    const context_content = getContextContent(llmMessages)
+    const rules_context = await getRuleSetContext(rule_set_directory, context_content);
+
+    console.log('Rule set context:', rules_context);
     
+    const systemPrompt = `You are an expert Dungeon Master for a D&D game. 
+    Create vivid, engaging scene descriptions that help players visualize the environment, 
+    NPCs, and situation they're in. Include sensory details and atmosphere.
+    Answer player questions and determine the outcome of actions using the provided game system rule context.
+    If you don't know the answer or it's not in the context, say so - don't make up information.
+    If you need to role dice, use the following format: "Roll 1d20" or "Roll 2d6". You will see the 
+    result in the response.
+
+    Rules Context:
+    ${rules_context}
+    `;
+
     const response = await sendMessage(llmMessages, systemPrompt);
     
     console.log('Received response from LLM API:', response);

@@ -362,7 +362,7 @@ export async function queryWithRAG(
 ): Promise<string> {
   try {
     // Load the vector store
-    const context = await getContext(directoryPath, query, maxResults);
+    const context = await getRuleSetContext(directoryPath, query, maxResults);
     
     // Create the system prompt
     const systemPrompt = `
@@ -401,7 +401,7 @@ async function getVectorStore(directoryPath: string) {
   return vector_store_cache[directoryPath];
 }
 
-async function getContext(directoryPath: string, query: string, maxResults: number) {
+export async function getRuleSetContext(directoryPath: string, query: string, maxResults: number = 5) {
 
   const vectorStore = await getVectorStore(directoryPath);
 
