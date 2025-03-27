@@ -1,8 +1,11 @@
 import torch
-from torch.utils.data import DataLoader
 from tqdm import tqdm
-from io import BytesIO
 from colpali_engine.models import ColQwen2, ColQwen2Processor
+from pdf2image import convert_from_path
+from pypdf import PdfReader
+from pathlib import PosixPath
+from PIL import Image
+import os
 
 model_name = "vidore/colqwen2-v0.1"
 
@@ -17,10 +20,6 @@ processor = ColQwen2Processor.from_pretrained(
     use_fast=True
 )
 model = model.eval()
-
-from pdf2image import convert_from_path
-from pypdf import PdfReader
-from pathlib import PosixPath
 
 def process_pdf(pdf_path:PosixPath):
     print(f'Processing {pdf_path}...')
@@ -57,19 +56,7 @@ def save_pdf_page_text(pdf_path, page_text_path):
             file.write(text)
 
 def generate_image_embeddings(page_image_path):
-    """
-    Generate embeddings for images in the specified directory.
-    Processes images incrementally to avoid loading all into memory at once.
-    
-    Args:
-        page_image_path: Path to directory containing image files
-    
-    Returns:
-        List of embeddings for all processed images
-    """
-    from PIL import Image
-    import os
-    
+
     page_embeddings = []
     
     # Get all image files from the directory
@@ -114,19 +101,3 @@ def generate_image_embeddings(page_image_path):
     return page_embeddings
 
 process_pdf(PosixPath('./content/rules/SRD3_5/SRD_3.5_Complete_2004_ver_1.0.pdf'))
-
-# from IPython.display import display
-
-
-# def resize_image(image, max_height=800):
-#     width, height = image.size
-#     if height > max_height:
-#         ratio = max_height / height
-#         new_width = int(width * ratio)
-#         new_height = int(height * ratio)
-#         return image.resize((new_width, new_height))
-#     return image
-
-# print('count:', len(page_images))
-
-# display(resize_image(page_images[0]))
