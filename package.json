@@ -9,8 +9,8 @@
     "build:server": "tsc -p tsconfig.server.json",
     "build": "npm run build:client && npm run build:server",
     "start": "node dist/server/index.js",
-    "rule-set": "ts-node --project tsconfig.server.json src/utils/rule-set/cli.ts",
-    "module": "ts-node --project tsconfig.server.json src/utils/module/index.ts"
+    "rule-set": "ts-node --project tsconfig.server.json src/util/rule-set/cli.ts",
+    "module": "ts-node --project tsconfig.server.json src/util/module/index.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
