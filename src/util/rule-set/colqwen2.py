@@ -1,8 +1,8 @@
 import torch
 from tqdm import tqdm
 from colpali_engine.models import ColQwen2, ColQwen2Processor
+from colpali_engine.models import ColPali, ColPaliProcessor
 from pdf2image import convert_from_path
-from pypdf import PdfReader
 from pathlib import Path, PosixPath
 from PIL import Image
 import os
@@ -12,13 +12,10 @@ import stamina
 from rich import print as r_print
 
 THREAD_COUNT = 16
-BATCH_SIZE = 6
+BATCH_SIZE = 3
 
 class RuleSetRag:
 
-    _vector_size = 128
-    _page_images_collection_name = 'rules_SRD3_5'
-    _model_name = "vidore/colqwen2-v0.1"
     _page_image_path_cache:list[str] = []
 
     def __init__(self, rule_set_path:Path):
@@ -29,22 +26,51 @@ class RuleSetRag:
         self._qdrant_path.mkdir(exist_ok=True)
         self._qdrant_client = QdrantClient(path=str(self._qdrant_path))
 
-        self._model = ColQwen2.from_pretrained(
-            self._model_name, 
-            torch_dtype=torch.bfloat16, 
-            device_map="auto",
-            local_files_only=True
-        )
-        self._processor = ColQwen2Processor.from_pretrained(
-            self._model_name, 
-            use_fast=True
-        )
-        self._model = self._model.eval()
-        
         self._load_page_image_path_cache()
 
+        self._use_colqwen2_v0_1()
+        # self._use_colpali_v_1_3()
+
+    def _use_colqwen2_v0_1(self):
+
+        self._page_images_collection_name = 'page_images_colqwen2_v0_1'
+        self._vector_size = 128
+
+        model_name = "vidore/colqwen2-v0.1"
+
+        self._model = ColQwen2.from_pretrained(
+            model_name, 
+            torch_dtype=torch.bfloat16, 
+            device_map="auto",
+            # local_files_only=True
+        ).eval()
+
+        self._processor = ColQwen2Processor.from_pretrained(
+            model_name, 
+            use_fast=True
+        )
+        
+    def _use_colpali_v_1_3(self):
+
+        self._page_images_collection_name = 'page_images_colpali_v_1_3'
+        self._vector_size = 128
+
+        model_name = "vidore/colpali-v1.3"
+
+        self._model = ColPali.from_pretrained(
+            model_name, 
+            torch_dtype=torch.bfloat16, 
+            device_map="auto",
+            # local_files_only=True
+        ).eval()
+
+        self._processor = ColPaliProcessor.from_pretrained(
+            model_name, 
+            use_fast=True
+        )
+
     def create_index(self):
-        self._create_page_images()
+        # self._create_page_images()
         self._create_page_images_collection()
         self._index_page_image_embeddings()
 
@@ -82,7 +108,7 @@ class RuleSetRag:
                 indexing_threshold=0
             ),  # it can be useful to switch this off when doing a bulk upload and then manually trigger the indexing once the upload is done
             vectors_config=models.VectorParams(
-                size=self.vector_size,
+                size=self._vector_size,
                 distance=models.Distance.COSINE,
                 multivector_config=models.MultiVectorConfig(
                     comparator=models.MultiVectorComparator.MAX_SIM
@@ -163,9 +189,9 @@ class RuleSetRag:
             return False
         return True
 
-    def show_embedding_dimensions(self, image_path:str):
+    def show_embedding_dimensions(self):
 
-        sample_image = Image.open(image_path)
+        sample_image = Image.open(self._page_image_path_cache[0])
 
         with torch.no_grad():
             sample_batch = self._processor.process_images([sample_image]).to(
@@ -199,6 +225,10 @@ class RuleSetRag:
 
 
 rule_set_rag = RuleSetRag(PosixPath('./content/rules/SRD3_5'))
+
+# rule_set_rag.show_embedding_dimensions()
+
+rule_set_rag.create_index()
 
 while True:
     try:
