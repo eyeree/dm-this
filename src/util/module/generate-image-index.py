@@ -32,8 +32,9 @@ from fitz import Page, Document
 from PIL import Image
 import io
 import argparse
+import hashlib
 from tqdm import tqdm
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any, Set
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -66,11 +67,13 @@ class ModuleIndex:
     _page_images_path: Path
     _embedded_images_path: Path
     _llm_provider: Optional[LLMProvider]
+    _image_hashes: Dict[str, str]  # Maps image hash to filename
 
     def __init__(self, module_path: Path):
         self._root_path = module_path
         self._page_images_path = self._root_path.joinpath('page-images')
         self._embedded_images_path = self._root_path.joinpath('embedded-images')
+        self._image_hashes = {}
         
         # Initialize the LLM provider
         try:
@@ -125,6 +128,18 @@ class ModuleIndex:
         pix = page.get_pixmap()
         pix.save(self._page_images_path.joinpath(f"{base_file_name}-{page.number+1:04d}.png"))
 
+    def _generate_image_hash(self, image_bytes: bytes) -> str:
+        """
+        Generate a hash of the image content for duplicate detection.
+        
+        Args:
+            image_bytes: The raw bytes of the image
+            
+        Returns:
+            A string hash of the image content
+        """
+        return hashlib.sha256(image_bytes).hexdigest()
+
     def _extract_embedded_images_from_page(self, page: Page, base_file_name: str, xreflist: list[str]) -> int:
         pdf_document: Document = page.parent
 
@@ -133,12 +148,10 @@ class ModuleIndex:
         
         image_count = 0
 
-        print('page', page.number)
         for img_index, img_info in enumerate(image_list):
             # rect = page.get_image_bbox(img[7])
 
             xref = img_info[0]
-            print('  xref', xref)
             if xref in xreflist:
                 print('skipped existing xref', xref)
                 continue
@@ -147,6 +160,15 @@ class ModuleIndex:
             image_bytes = base_image["image"]
 
             if base_image["width"] < 50 or base_image["height"] < 50:
+                continue
+            
+            # Generate hash of the image content
+            image_hash = self._generate_image_hash(image_bytes)
+            
+            # Check if this image is a duplicate
+            if image_hash in self._image_hashes:
+                duplicate_filename = self._image_hashes[image_hash]
+                # print(f'  skipped duplicate image (matches {duplicate_filename})')
                 continue
             
             # Convert to PIL Image and save as PNG
@@ -158,6 +180,9 @@ class ModuleIndex:
             # Save the image as PNG
             image_path = self._embedded_images_path.joinpath(output_filename)
             image.save(image_path, format="PNG")
+            
+            # Store the hash to detect future duplicates
+            self._image_hashes[image_hash] = output_filename
             
             image_count += 1
         
@@ -305,6 +330,8 @@ class ModuleIndex:
         
         Your response must be valid JSON that can be parsed.
         """
+
+        return 
 
         # Send the request to the LLM
         try:
