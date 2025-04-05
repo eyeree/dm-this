@@ -140,11 +140,62 @@ class ModuleIndex:
         """
         return hashlib.sha256(image_bytes).hexdigest()
 
+    def _recoverpix(self, doc: Document, img_info) -> Dict[str, Any]:
+        """
+        Process special cases for PDF images, similar to the recoverpix function in PyMuPDF-Utilities.
+        Handles images with /SMask (transparency) and special /ColorSpace definitions.
+        
+        Args:
+            doc: The PDF document
+            img_info: Image information from page.get_images()
+            
+        Returns:
+            Dictionary with image data, extension, and colorspace information
+        """
+        xref = img_info[0]  # xref of PDF image
+        smask = img_info[1]  # xref of its /SMask
+        
+        # Special case: /SMask or /Mask exists (handles transparency)
+        if smask > 0:
+            pix0 = fitz.Pixmap(doc.extract_image(xref)["image"])
+            if pix0.alpha:  # catch irregular situation
+                pix0 = fitz.Pixmap(pix0, 0)  # remove alpha channel
+            mask = fitz.Pixmap(doc.extract_image(smask)["image"])
+            try:
+                pix = fitz.Pixmap(pix0, mask)
+            except:  # fallback to original base image in case of problems
+                pix = fitz.Pixmap(doc.extract_image(xref)["image"])
+            
+            if pix0.n > 3:
+                ext = "pam"
+            else:
+                ext = "png"
+            
+            return {
+                "ext": ext,
+                "colorspace": pix.colorspace.n,
+                "image": pix.tobytes(ext),
+            }
+        
+        # Special case: /ColorSpace definition exists
+        # Convert these cases to RGB PNG images
+        if "/ColorSpace" in doc.xref_object(xref, compressed=True):
+            pix = fitz.Pixmap(doc, xref)
+            pix = fitz.Pixmap(fitz.csRGB, pix)
+            return {
+                "ext": "png",
+                "colorspace": 3,
+                "image": pix.tobytes("png"),
+            }
+        
+        # Default case: use standard extract_image
+        return doc.extract_image(xref)
+
     def _extract_embedded_images_from_page(self, page: Page, base_file_name: str, xreflist: list[str]) -> int:
         pdf_document: Document = page.parent
 
         # Get all images on the page
-        image_list = page.get_images(full=False)
+        image_list = page.get_images(full=True)  # Changed to full=True to get all image info including smask
         
         image_count = 0
 
@@ -156,10 +207,15 @@ class ModuleIndex:
                 print('skipped existing xref', xref)
                 continue
 
-            base_image = pdf_document.extract_image(xref)
-            image_bytes = base_image["image"]
-
-            if base_image["width"] < 50 or base_image["height"] < 50:
+            # Use recoverpix to handle special cases like transparency
+            processed_image = self._recoverpix(pdf_document, img_info)
+            image_bytes = processed_image["image"]
+            
+            # Get width and height from img_info (indices 2 and 3)
+            width = img_info[2]
+            height = img_info[3]
+            
+            if width < 50 or height < 50:
                 continue
             
             # Generate hash of the image content
