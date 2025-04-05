@@ -17,6 +17,22 @@ function getOpenAIClient() {
 
 }
 
+/**
+ * Get context from rule set for a given query
+ * @param directory Path to the rule set directory
+ * @param query Query to get context for
+ * @returns Promise with the context string
+ */
+export async function getRuleSetContext(directory: string, query: string): Promise<string> {
+  try {
+    const ruleSet = await RuleSet.load(directory);
+    return await ruleSet.getRuleSetContext(query);
+  } catch (error) {
+    console.error(`Error getting rule set context: ${error}`);
+    return "No rule context available.";
+  }
+}
+
 export class RuleSetProcessor {
 
   async process(directory_path:string) {
