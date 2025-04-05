@@ -101,8 +101,11 @@ class ModuleIndex:
         self._process_pdfs()
         if self._llm_provider and self._llm_provider.supports_images():
             self._process_embedded_images_with_llm()
+            self._combine_embedded_image_json_files()
         else:
             print("Skipping LLM processing: LLM provider not available or doesn't support images")
+            # Still combine any existing JSON files even if we skip LLM processing
+            self._combine_embedded_image_json_files()
 
     def _process_pdfs(self):
         self._clean_directory(self._page_images_path)
@@ -387,8 +390,6 @@ class ModuleIndex:
         Your response must be valid JSON that can be parsed.
         """
 
-        return 
-
         # Send the request to the LLM
         try:
             response = self._llm_provider.send_message(messages, system_prompt)
@@ -421,6 +422,54 @@ class ModuleIndex:
                 
         except Exception as e:
             print(f"Error calling LLM for {embedded_image_path.name}: {e}")
+
+    def _combine_embedded_image_json_files(self):
+        """
+        Combine all individual embedded image JSON files into a single embedded-images.json file
+        in the same directory as the input PDF files.
+        """
+        print("Combining embedded image JSON files...")
+        
+        # Find all JSON files in the embedded-images directory
+        json_files = list(self._embedded_images_path.glob('*.json'))
+        
+        if not json_files:
+            print("No JSON files found to combine")
+            return
+        
+        # Create a dictionary to store all the image data
+        # The keys will be the image filenames (without extension) and the values will be the JSON data
+        combined_data = {}
+        
+        # Process each JSON file
+        for json_file_path in tqdm(json_files, "Combining JSON files"):
+            try:
+                # Get the corresponding image filename (same name but with .png extension)
+                image_filename = json_file_path.with_suffix('.png').name
+                
+                # Read the JSON data
+                with open(json_file_path, 'r') as f:
+                    json_data = json.load(f)
+                
+                # Add the image filename to the JSON data
+                json_data['image_filename'] = image_filename
+                
+                # Add the JSON data to the combined data dictionary
+                combined_data[json_file_path.stem] = json_data
+                
+            except Exception as e:
+                print(f"Error processing JSON file {json_file_path.name}: {e}")
+        
+        # Write the combined data to a new file in the root directory
+        output_path = self._root_path.joinpath('embedded-images.json')
+        
+        try:
+            with open(output_path, 'w') as f:
+                json.dump(combined_data, f, indent=2)
+            
+            print(f"Combined JSON data written to {output_path}")
+        except Exception as e:
+            print(f"Error writing combined JSON data to {output_path}: {e}")
 
     def make_map_coordinate_image(self, map_image_file_path:Path):
 
