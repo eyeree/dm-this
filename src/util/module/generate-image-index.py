@@ -96,8 +96,6 @@ class ModuleIndex:
 
     def create_index(self):
         self._process_pdfs()
-        
-        # Process embedded images with LLM after PDFs have been processed
         if self._llm_provider and self._llm_provider.supports_images():
             self._process_embedded_images_with_llm()
         else:
@@ -125,7 +123,7 @@ class ModuleIndex:
 
     def _save_page_image(self, page: Page, base_file_name: str):
         pix = page.get_pixmap()
-        pix.save(self._page_images_path.joinpath(f"{base_file_name}-{page.number}.png"))
+        pix.save(self._page_images_path.joinpath(f"{base_file_name}-{page.number+1:04d}.png"))
 
     def _extract_embedded_images_from_page(self, page: Page, base_file_name: str, xreflist: list[str]) -> int:
         pdf_document: Document = page.parent
@@ -135,11 +133,14 @@ class ModuleIndex:
         
         image_count = 0
 
+        print('page', page.number)
         for img_index, img_info in enumerate(image_list):
             # rect = page.get_image_bbox(img[7])
 
             xref = img_info[0]
+            print('  xref', xref)
             if xref in xreflist:
+                print('skipped existing xref', xref)
                 continue
 
             base_image = pdf_document.extract_image(xref)
@@ -203,26 +204,26 @@ class ModuleIndex:
         
         # Extract base file name (may contain hyphens)
         page_num_str = filename_parts[-2]
-        img_idx_str = filename_parts[-1]
         base_file_name = '-'.join(filename_parts[:-2])
         
         try:
             page_num = int(page_num_str)
-            img_idx = int(img_idx_str)
         except ValueError:
             print(f"Skipping image with invalid page/index format: {embedded_image_path.name}")
             return
         
         # Get the corresponding page image
-        page_image_path = self._page_images_path.joinpath(f"{base_file_name}-{page_num-1}.png")
+        page_image_path = self._page_images_path.joinpath(f"{base_file_name}-{page_num:04d}.png")
         
         if not page_image_path.exists():
             print(f"Skipping image: corresponding page image not found: {page_image_path}")
             return
         
         # Get the previous and next page images if they exist
-        prev_page_image_path = self._page_images_path.joinpath(f"{base_file_name}-{page_num-2}.png")
-        next_page_image_path = self._page_images_path.joinpath(f"{base_file_name}-{page_num}.png")
+        prev_page_image_path = self._page_images_path.joinpath(f"{base_file_name}-{page_num-1}.png")
+        next_page_image_path = self._page_images_path.joinpath(f"{base_file_name}-{page_num+1}.png")
+
+        # print('image pages', embedded_image_path, '->', page_image_path, prev_page_image_path, next_page_image_path)
         
         # Prepare the LLM request
         messages = []
@@ -304,7 +305,7 @@ class ModuleIndex:
         
         Your response must be valid JSON that can be parsed.
         """
-        
+
         # Send the request to the LLM
         try:
             response = self._llm_provider.send_message(messages, system_prompt)
@@ -401,8 +402,8 @@ def main():
 
     try:
         index = ModuleIndex(module_path)
-        index.make_map_coordinate_image(Path('content/module/BF1-Morgansfort-r43/embedded-images/BF1-Morgansfort-r43-0064-0001.png'))
-        # index.create_index()
+        # index.make_map_coordinate_image(Path('content/module/BF1-Morgansfort-r43/embedded-images/BF1-Morgansfort-r43-0064-0001.png'))
+        index.create_index()
     except Exception as e:
         print(f"Error indexing module: {e}")
         traceback.print_exc()

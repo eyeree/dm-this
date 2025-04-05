@@ -3,7 +3,8 @@ import express from 'express';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { LLMMessage } from '../services/llm';
-import { AgentFactory, AgentType, ChatMessage, ImageDisplayTarget, ImageMessage, MapState, MapToken } from '../services/agents';
+import { AgentType, ChatMessage, ImageDisplayTarget, ImageMessage, MapState, MapToken } from '../services/agents';
+import { Campaign } from './campaign';
 
 // Use process.cwd() instead of __dirname
 const rootDir = process.cwd();
@@ -11,17 +12,18 @@ const rootDir = process.cwd();
 const app = express();
 const PORT = process.env.PORT || 3002;
 
-// Configuration
-const campaignDirectory = process.env.DM_THIS_CAMPAIGN || 'campaign/sample-campaign';
-const moduleDirectory = process.env.DM_THIS_MODULE || 'content/module';
-const rulesDirectory = process.env.DM_THIS_RULE_SET || 'content/rules/SRD3_5';
-
 // Middleware
 app.use(express.json());
 app.use(express.static(path.resolve(rootDir, 'dist')));
 
-// Initialize agent factory
-const agentFactory = AgentFactory.getInstance();
+// Get campaign ID from environment variable
+const campaignId = process.env.DM_THIS_CAMPAIGN || '';
+if (!campaignId) {
+  throw new Error('DM_THIS_CAMPAIGN environment variable is not defined');
+}
+
+// Initialize campaign
+let campaign: Campaign;
 
 // In-memory state
 let currentMapState: MapState = {
@@ -34,15 +36,13 @@ let recentRuleInterpretations: string[] = [];
 // Initialize the server
 async function initializeServer() {
   try {
-    console.log('Initializing agent factory...');
-    await agentFactory.initialize({
-      campaignDirectory,
-      moduleDirectory,
-      rulesDirectory
-    });
-    console.log('Agent factory initialized successfully');
+    console.log('Initializing campaign...');
+    campaign = new Campaign(campaignId);
+    await campaign.initialize();
+    console.log('Campaign initialized successfully');
   } catch (error) {
-    console.error('Error initializing agent factory:', error);
+    console.error('Error initializing campaign:', error);
+    throw error;
   }
 }
 
@@ -59,8 +59,8 @@ app.get('/api/status', (_req, res) => {
 // Get available characters
 app.get('/api/characters', async (_req, res) => {
   try {
-    const characterAgents = agentFactory.getAllCharacterAgents();
-    const characters = characterAgents.map(agent => {
+    const characterAgents = campaign.getAllCharacterAgents();
+    const characters = characterAgents.map((agent: any) => {
       try {
         return agent.getCharacterStats();
       } catch (error) {
@@ -84,7 +84,7 @@ app.get('/api/characters', async (_req, res) => {
 // Get character creation constraints
 app.get('/api/character-creation/constraints', async (_req, res) => {
   try {
-    const masterAgent = agentFactory.getMasterAgent();
+    const masterAgent = campaign.getMasterAgent();
     const constraints = await masterAgent.getCharacterCreationConstraints();
     
     res.json({ constraints });
@@ -97,7 +97,7 @@ app.get('/api/character-creation/constraints', async (_req, res) => {
 // Get pre-created characters
 app.get('/api/character-creation/precreated', async (_req, res) => {
   try {
-    const masterAgent = agentFactory.getMasterAgent();
+    const masterAgent = campaign.getMasterAgent();
     const characters = await masterAgent.getPrecreatedCharacters();
     
     res.json({ characters });
@@ -116,8 +116,8 @@ app.post('/api/character-creation', async (req, res) => {
       return res.status(400).json({ error: 'Character description is required' });
     }
     
-    const masterAgent = agentFactory.getMasterAgent();
-    const ruleAgent = agentFactory.getRuleAgent();
+    const masterAgent = campaign.getMasterAgent();
+    const ruleAgent = campaign.getRuleAgent();
     
     // Get character creation constraints
     const constraints = await masterAgent.getCharacterCreationConstraints();
@@ -159,7 +159,7 @@ app.post('/api/message', async (req, res) => {
     };
     
     // Get the appropriate agent
-    const agent = agentFactory.getAgent(agentType as AgentType, agentName);
+    const agent = campaign.getAgent(agentType as AgentType, agentName);
     
     // Process the message
     const additionalContext: any = {};
