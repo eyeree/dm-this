@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 3002;
 
 // Middleware
 app.use(express.json());
-app.use(express.static(path.resolve(rootDir, 'dist')));
+app.use(express.static(path.resolve(rootDir, 'dist/ui')));
 
 // Get campaign ID from environment variable
 const campaignId = process.env.DM_THIS_CAMPAIGN || '';
@@ -330,7 +330,7 @@ app.post('/api/image', async (req, res) => {
 
 // All other GET requests not handled before will return the React app
 app.get('*', (_req, res) => {
-  res.sendFile(path.resolve(rootDir, 'dist/index.html'));
+  res.sendFile(path.resolve(rootDir, 'dist/ui/index.html'));
 });
 
 // Initialize the server and start listening
