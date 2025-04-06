@@ -112,12 +112,6 @@ export interface Agent {
    * @param context Additional context for the agent
    */
   processMessage(message: ChatMessage, context?: any): Promise<ChatMessage>;
-  
-  /**
-   * Initialize the agent with context
-   * @param context The context to initialize with
-   */
-  initialize(context: any): Promise<void>;
 }
 
 /**

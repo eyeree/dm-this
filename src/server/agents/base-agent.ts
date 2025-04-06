@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Agent, AgentType, ChatMessage } from './types';
 import { LLMMessage, sendMessage } from '../llm';
+import { Campaign } from '../state/campaign';
 
 /**
  * Base agent implementation
@@ -10,11 +11,13 @@ export abstract class BaseAgent implements Agent {
   protected type: AgentType;
   protected systemPrompt: string;
   protected context: any;
+  protected campaign: Campaign;
 
-  constructor(name: string, type: AgentType, systemPrompt: string) {
+  constructor(name: string, type: AgentType, systemPrompt: string, campaign: Campaign) {
     this.name = name;
     this.type = type;
     this.systemPrompt = systemPrompt;
+    this.campaign = campaign;
     this.context = {};
   }
 
@@ -24,10 +27,6 @@ export abstract class BaseAgent implements Agent {
 
   getName(): string {
     return this.name;
-  }
-
-  async initialize(context: any): Promise<void> {
-    this.context = context;
   }
 
   /**

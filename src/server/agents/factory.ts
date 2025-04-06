@@ -12,6 +12,7 @@ export class AgentFactory {
   private masterAgent: MasterAgent | null = null;
   private ruleAgent: RuleAgent | null = null;
   private characterAgents: Map<string, CharacterAgent> = new Map();
+  private campaign: Campaign | null = null;
   
   private constructor() {}
   
@@ -29,32 +30,18 @@ export class AgentFactory {
    * Initialize the agent factory with a campaign
    * @param config Configuration containing the campaign
    */
-  public async initialize(config: {
+  public initialize(config: {
     campaign: Campaign;
-  }): Promise<void> {
-    const campaign = config.campaign;
+  }): void {
+    this.campaign = config.campaign;
     
     // Initialize master agent
-    this.masterAgent = new MasterAgentImpl();
-    await this.masterAgent.initialize({
-      campaign
-    });
+    this.masterAgent = new MasterAgentImpl(this.campaign);
     
     // Initialize rule agent
-    this.ruleAgent = new RuleAgentImpl();
-    await this.ruleAgent.initialize({
-      campaign
-    });
+    this.ruleAgent = new RuleAgentImpl(this.campaign);
     
-    // Initialize character agents for all player characters and NPCs
-    // This would typically be done by reading the campaign state
-    // For this example, we'll just initialize a sample character
-    // const sampleCharacter = new CharacterAgentImpl('Blageron');
-    // await sampleCharacter.initialize({
-    //   campaign,
-    //   characterName: 'Blageron'
-    // });
-    // this.characterAgents.set('Blageron', sampleCharacter);
+    // Character agents will be created on demand
   }
   
   /**
@@ -101,28 +88,20 @@ export class AgentFactory {
    * @param name Name of the character
    * @param player Name of the player (optional)
    */
-  public async createCharacterAgent(name: string, player?: string): Promise<CharacterAgent> {
+  public createCharacterAgent(name: string): CharacterAgent {
     if (this.characterAgents.has(name)) {
       throw new Error(`Character agent already exists: ${name}`);
     }
     
-    if (!this.masterAgent) {
-      throw new Error('Master agent not initialized');
+    if (!this.campaign) {
+      throw new Error('Campaign not initialized');
     }
     
-    // Get the campaign from the master agent
-    const masterAgentImpl = this.masterAgent as MasterAgentImpl;
-    const campaign = (masterAgentImpl as any).campaign as Campaign;
-    if (!campaign) {
-      throw new Error('Campaign not initialized in master agent');
-    }
+    const agent = new CharacterAgentImpl(this.campaign, name);
     
-    const agent = new CharacterAgentImpl(name);
-    await agent.initialize({
-      campaign,
-      characterName: name,
-      player
-    });
+    // Player information is stored in the agent
+    // In a real implementation, we would need to add a method to Character class
+    // to update the character stats with player information
     
     this.characterAgents.set(name, agent);
     return agent;

@@ -6,27 +6,14 @@ import { Campaign } from '../state/campaign.js';
  * Rule agent implementation
  */
 export class RuleAgentImpl extends BaseAgent implements RuleAgent {
-  private campaign: Campaign | null = null;
-  
-  constructor(name: string = 'Rule Lawyer') {
+  constructor(campaign: Campaign) {
     const systemPrompt = `You are an expert at analyzing role playing game rules and answering player questions.
     Answer questions based on the provided rule context.
     If you don't know the answer or it's not in the context, say so - don't make up information.
     When guiding character creation, follow the rules strictly while helping players create
     characters that match their concept within the allowed constraints.`;
     
-    super(name, AgentType.RULE, systemPrompt);
-  }
-  
-  async initialize(context: any): Promise<void> {
-    await super.initialize(context);
-    
-    // Store the campaign object
-    this.campaign = context.campaign;
-    
-    if (!this.campaign) {
-      throw new Error('Campaign object is required for RuleAgent initialization');
-    }
+    super('Rule Lawyer', AgentType.RULE, systemPrompt, campaign);
   }
   
   async getRuleInterpretation(query: string): Promise<string> {

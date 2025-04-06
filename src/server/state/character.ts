@@ -35,9 +35,12 @@ export class Character {
   /**
    * Gets the character's stats.
    */
-  getStats(): CharacterStats | null {
+  getStats(): CharacterStats {
     if (this.stats === null) {
       this.loadStats();
+      if (this.stats == null) {
+        throw new Error(`Could not load stats for character ${this.characterName}`)
+      }
     }
     return this.stats;
   }

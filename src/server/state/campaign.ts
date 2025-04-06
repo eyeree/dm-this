@@ -211,7 +211,7 @@ export class Campaign {
       this._module = await Module.loadById(this.config.module);
       
       // Initialize the agent factory
-      await this.agentFactory.initialize({
+      this.agentFactory.initialize({
         campaign: this
       });
       
