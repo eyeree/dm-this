@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, DragEvent } from 'react';
 import './styles/App.css';
-import { AgentType, ChatMessage, CharacterStats, ImageDisplayTarget, MapToken } from './services/agents/types';
+import { AgentType, ChatMessage, CharacterStats, ImageDisplayTarget, MapToken } from '../server/agents/types';
 
 // Component interfaces
 interface MessageProps {

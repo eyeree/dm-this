@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { BaseAgent } from './base-agent';
-import { AgentType, CharacterStats, RuleAgent } from './types';
-import { getRuleSetContext } from '../../util/rule-set';
+import { BaseAgent } from './base-agent.js';
+import { AgentType, CharacterStats, RuleAgent } from './types.js';
+import { getRuleSetContext } from '../state/rule-set.js';
 
 /**
  * Rule agent implementation

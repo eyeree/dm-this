@@ -42,7 +42,7 @@ import numpy as np
 # Use absolute import instead of relative import to avoid ImportError
 try:
     # When running as a module within a package
-    from .llm_interface import (
+    from ..llm.llm_interface import (
         LLMFactory, 
         LLMProvider, 
         LLMMessage, 
@@ -52,7 +52,7 @@ try:
     )
 except ImportError:
     # When running as a standalone script
-    from llm_interface import (
+    from util.llm.llm_interface import (
         LLMFactory, 
         LLMProvider, 
         LLMMessage, 

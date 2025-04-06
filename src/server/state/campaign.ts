@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { AgentFactory, AgentType } from '../services/agents';
+import { AgentFactory, AgentType } from '../agents';
 
 interface CampaignConfig {
   module: string;

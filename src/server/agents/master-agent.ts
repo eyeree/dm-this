@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { BaseAgent } from './base-agent';
-import { AgentType, CharacterStats, MasterAgent } from './types';
+import { BaseAgent } from './base-agent.js';
+import { AgentType, CharacterStats, MasterAgent } from './types.js';
 
 /**
  * Master agent implementation

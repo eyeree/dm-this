@@ -5,11 +5,11 @@
     "moduleResolution": "NodeNext",
     "lib": ["ES2020"],
     "esModuleInterop": true,
-    "outDir": "dist",
+    "outDir": "dist/server",
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true
   },
-  "include": ["src/server/**/*", "src/services/**/*", "src/utils/**/*"]
+  "include": ["src/server/**/*"]
 }

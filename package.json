@@ -8,9 +8,7 @@
     "build:client": "tsc && vite build",
     "build:server": "tsc -p tsconfig.server.json",
     "build": "npm run build:client && npm run build:server",
-    "start": "node dist/server/index.js",
-    "rule-set": "ts-node --project tsconfig.server.json src/util/rule-set/cli.ts",
-    "module": "ts-node --project tsconfig.server.json src/util/module/index.ts"
+    "start": "node dist/server/index.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

@@ -1,10 +1,13 @@
-import '../util/config/load';
 import express from 'express';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { LLMMessage } from '../services/llm';
-import { AgentType, ChatMessage, ImageDisplayTarget, ImageMessage, MapState, MapToken } from '../services/agents';
-import { Campaign } from './campaign';
+import { AgentType, ChatMessage, ImageDisplayTarget, ImageMessage, MapState, MapToken } from './agents';
+import { Campaign } from './state/campaign';
+import dotenv from 'dotenv';
+
+const env_path = path.resolve(process.cwd(), '.env');
+console.log(`loading config from: ${env_path}`)
+dotenv.config({ path: env_path });
 
 // Use process.cwd() instead of __dirname
 const rootDir = process.cwd();
