@@ -1,5 +1,5 @@
 import { BaseAgent } from './base-agent.js';
-import { AgentType, CharacterStats, RuleAgent } from './types.js';
+import { AgentType, RuleAgent } from './types.js';
 import { Campaign } from '../state/campaign.js';
 
 /**
@@ -15,108 +15,29 @@ export class RuleAgentImpl extends BaseAgent implements RuleAgent {
     
     super('Rule Lawyer', AgentType.RULE, systemPrompt, campaign);
   }
-  
-  async getRuleInterpretation(query: string): Promise<string> {
-    if (!this.campaign) {
-      throw new Error('Campaign not initialized');
+
+  protected getContext(): string {
+    let context = '';
+    
+    // Get rule file paths from campaign
+    const ruleFilePaths = this.campaign.rules.getRuleFilePaths();
+    if (ruleFilePaths && ruleFilePaths.length > 0) {
+      context += 'Rule Files:';
+      ruleFilePaths.forEach((path: string) => {
+        context += `\n- ${path}`;
+      });
     }
     
-    const ruleFilePaths = this.campaign.rules.getRuleFilePaths()
+    // Note: The following information would typically come from additionalContext
+    // but we're removing that dependency as per requirements
     
-    // Create LLM messages for the query
-    const llmMessages = [
-      {
-        role: 'user',
-        content: query
-      }
-    ];
+    // TODO: If needed, implement a way to get rule context from campaign object
+    // For example: this.campaign.rules.getRuleContext()
     
-    // Get response from LLM with rule context
-    const response = await this.sendMessageToLLM(llmMessages, { ruleFilePaths });
+    // TODO: If needed, implement a way to get character creation constraints from campaign object
+    // For example: this.campaign.rules.getCharacterCreationConstraints()
     
-    return response.message.content;
+    return context;
   }
-  
-  async guideCharacterCreation(constraints: any, description: string): Promise<CharacterStats> {
-    if (!this.campaign) {
-      throw new Error('Campaign not initialized');
-    }
-    
-    // Create LLM messages for character creation
-    const llmMessages = [
-      {
-        role: 'user',
-        content: `I want to create a character with the following description: ${description}`
-      }
-    ];
-    
-    const ruleFilePaths = this.campaign.rules.getRuleFilePaths()
-    
-    // Get response from LLM with rule context and constraints
-    await this.sendMessageToLLM(llmMessages, { 
-      ruleFilePaths,
-      constraints
-    });
-    
-    // In a real implementation, this would involve a multi-turn conversation
-    // For this example, we'll just return a simplified character
-    return {
-      name: 'New Character',
-      player: 'Player',
-      backstory: description,
-      stats: {
-        'Strength': 10,
-        'Dexterity': 10,
-        'Constitution': 10,
-        'Intelligence': 10,
-        'Wisdom': 10,
-        'Charisma': 10
-      },
-      equipped: [],
-      inventory: []
-    };
-  }
-  
-  protected getSystemPrompt(context: any): string {
-    // Enhance the base system prompt with context
-    let enhancedPrompt = this.systemPrompt;
-    
-    // Add rule context if available
-    if (context.ruleContext) {
-      enhancedPrompt += `\n\nRule Context:\n${context.ruleContext}`;
-    }
-    
-    // Add character creation constraints if available
-    if (context.constraints) {
-      enhancedPrompt += '\n\nCharacter Creation Constraints:';
-      enhancedPrompt += `\n${context.constraints.description}`;
-      
-      if (context.constraints.allowedLevels) {
-        enhancedPrompt += `\nAllowed Levels: ${context.constraints.allowedLevels.join(', ')}`;
-      }
-      
-      if (context.constraints.allowedRaces) {
-        enhancedPrompt += `\nAllowed Races: ${context.constraints.allowedRaces.join(', ')}`;
-      }
-      
-      if (context.constraints.allowedClasses) {
-        enhancedPrompt += `\nAllowed Classes: ${context.constraints.allowedClasses.join(', ')}`;
-      }
-    }
-    
-    return enhancedPrompt;
-  }
-  
-  private async sendMessageToLLM(messages: any[], additionalContext: any = {}): Promise<any> {
-    // Use the LLM service to send a message
-    const { sendMessage } = await import('../llm/index.js');
-    
-    // Combine existing context with additional context
-    const combinedContext = {
-      ...this.context,
-      ...additionalContext
-    };
-    
-    return sendMessage(messages, this.getSystemPrompt(combinedContext));
-  }
+
 }

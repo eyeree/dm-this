@@ -6,6 +6,8 @@ import { Campaign } from '../state/campaign.js';
  * Master agent implementation
  */
 export class MasterAgentImpl extends BaseAgent implements MasterAgent {
+  private journal: string;
+  
   constructor(campaign: Campaign) {
     const systemPrompt = `You are the Game Master for a tabletop role-playing game. 
     Your role is to narrate the story, describe environments, control NPCs, and adjudicate rules.
@@ -15,10 +17,8 @@ export class MasterAgentImpl extends BaseAgent implements MasterAgent {
     
     super("Game Master", AgentType.MASTER, systemPrompt, campaign);
 
-    this.context.campaignState = this.campaign.getCampaignState();
-    this.context.moduleFilePaths = this.campaign.module.getModuleFilePaths();
-    this.context.journal = this.campaign.getJournal();
-
+    // Store journal directly instead of in context
+    this.journal = this.campaign.getJournal();
   }
 
   async updateJournal(entry: string): Promise<void> {
@@ -29,43 +29,30 @@ export class MasterAgentImpl extends BaseAgent implements MasterAgent {
     // Use the campaign object to update the journal
     await this.campaign.updateJournal(entry);
     
-    // Update context
-    this.context.journal = this.campaign.getJournal();
+    // Update journal property
+    this.journal = this.campaign.getJournal();
   }
 
-  protected getSystemPrompt(context: any): string {
-    // Enhance the base system prompt with context
-    let enhancedPrompt = this.systemPrompt;
+  protected getContext(additionalContext?: any): string {
+    let context = '';
     
     // Add journal context
-    if (context.journal) {
-      enhancedPrompt += `\n\nCampaign Journal:\n${context.journal}`;
+    if (this.journal) {
+      context += `Campaign Journal:\n${this.journal}`;
     }
     
-    // Add player character information
-    if (context.playerCharacters && context.playerCharacters.length > 0) {
-      enhancedPrompt += '\n\nPlayer Characters:';
-      context.playerCharacters.forEach((pc: any) => {
-        enhancedPrompt += `\n- ${pc.name}`;
-      });
-    }
+    // Note: The following information would typically come from additionalContext
+    // but we're removing that dependency as per requirements
     
-    // Add recent rule interpretations if available
-    if (context.recentRuleInterpretations) {
-      enhancedPrompt += '\n\nRecent Rule Interpretations:';
-      enhancedPrompt += context.recentRuleInterpretations;
-    }
+    // TODO: If needed, implement a way to get player characters from campaign object
+    // For example: this.campaign.getPlayerCharacters()
     
-    // Add map state if available
-    if (context.mapState) {
-      enhancedPrompt += '\n\nCurrent Map State:';
-      enhancedPrompt += `\n- Background: ${context.mapState.backgroundUrl}`;
-      enhancedPrompt += '\n- Tokens:';
-      context.mapState.tokens.forEach((token: any) => {
-        enhancedPrompt += `\n  - ${token.name} at position (${token.x}, ${token.y})`;
-      });
-    }
+    // TODO: If needed, implement a way to get recent rule interpretations from campaign object
+    // For example: this.campaign.getRecentRuleInterpretations()
     
-    return enhancedPrompt;
+    // TODO: If needed, implement a way to get map state from campaign object
+    // For example: this.campaign.getMapState()
+    
+    return context;
   }
 }

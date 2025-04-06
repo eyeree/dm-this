@@ -10,7 +10,6 @@ export abstract class BaseAgent implements Agent {
   protected name: string;
   protected type: AgentType;
   protected systemPrompt: string;
-  protected context: any;
   protected campaign: Campaign;
 
   constructor(name: string, type: AgentType, systemPrompt: string, campaign: Campaign) {
@@ -18,7 +17,6 @@ export abstract class BaseAgent implements Agent {
     this.type = type;
     this.systemPrompt = systemPrompt;
     this.campaign = campaign;
-    this.context = {};
   }
 
   getType(): AgentType {
@@ -44,16 +42,9 @@ export abstract class BaseAgent implements Agent {
   /**
    * Process a message and generate a response
    * @param message The message to process
-   * @param context Additional context for the agent
    */
-  async processMessage(message: ChatMessage, context?: any): Promise<ChatMessage> {
-    // Combine existing context with additional context
-    const combinedContext = {
-      ...this.context,
-      ...context
-    };
-    
-    // Create LLM messages from the message and context
+  async processMessage(message: ChatMessage): Promise<ChatMessage> {
+    // Create LLM messages from the message
     const llmMessages: LLMMessage[] = [
       {
         role: message.sender.type === 'player' ? 'user' : 'assistant',
@@ -61,8 +52,12 @@ export abstract class BaseAgent implements Agent {
       }
     ];
     
+    // Get context string and combine with system prompt
+    const contextString = this.getContext();
+    const fullSystemPrompt = this.systemPrompt + (contextString ? '\n\n' + contextString : '');
+    
     // Get response from LLM
-    const response = await sendMessage(llmMessages, this.getSystemPrompt(combinedContext));
+    const response = await sendMessage(llmMessages, fullSystemPrompt);
     
     // Create chat message from response
     return {
@@ -78,9 +73,8 @@ export abstract class BaseAgent implements Agent {
   }
 
   /**
-   * Get the system prompt with context
-   * @param context Context to include in the prompt
-   * @returns System prompt with context
+   * Get the context string to append to the system prompt
+   * @returns Context string to append to the system prompt
    */
-  protected abstract getSystemPrompt(context: any): string;
+  protected abstract getContext(): string;
 }

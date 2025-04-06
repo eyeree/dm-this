@@ -130,11 +130,7 @@ export interface MasterAgent extends Agent {
  * Rule agent interface
  */
 export interface RuleAgent extends Agent {
-  /**
-   * Get a rule interpretation
-   * @param query The query to interpret
-   */
-  getRuleInterpretation(query: string): Promise<string>;
+
   
 }
 
