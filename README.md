@@ -42,6 +42,8 @@ The `package.json` file supports these commands:
 * **npm run build** - does `build:client` and `build:server`
 * **npm run start** - starts the service
 
+Build output is written to the `./dist/server` and `./dist/ui` directories.
+
 ## Setup
 
 Use `npm install` to install all server and client dependencies.
