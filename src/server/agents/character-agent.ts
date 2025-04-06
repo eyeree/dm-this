@@ -1,6 +1,7 @@
 import { BaseAgent } from './base-agent';
 import { AgentType, CharacterAgent, CharacterStats } from './types';
 import { Campaign } from '../state/campaign';
+import { Character } from '../state/character';
 
 /**
  * Character agent implementation
@@ -9,6 +10,7 @@ export class CharacterAgentImpl extends BaseAgent implements CharacterAgent {
   private campaign: Campaign | null = null;
   private characterName: string = '';
   private characterStats: CharacterStats | null = null;
+  private character: Character | null = null;
   
   constructor(name: string) {
     const systemPrompt = `You are roleplaying a character in a tabletop role-playing game.
@@ -34,31 +36,34 @@ export class CharacterAgentImpl extends BaseAgent implements CharacterAgent {
     
     this.characterName = context.characterName || this.name;
     
-    // Load character stats from campaign
-    this.characterStats = this.campaign.getCharacterStats(this.characterName);
+    // Get character from campaign
+    this.character = this.campaign.getCharacter(this.characterName);
+    
+    // Load character stats
+    this.characterStats = this.character.getStats();
     
     if (!this.characterStats) {
       throw new Error(`Character stats not found for ${this.characterName}`);
     }
     
-    // Load journal from campaign
-    this.context.journal = this.campaign.getCharacterJournal(this.characterName);
+    // Load journal
+    this.context.journal = this.character.getJournal();
   }
   
   async updateJournal(entry: string): Promise<void> {
-    if (!this.campaign) {
-      throw new Error('Campaign not initialized');
+    if (!this.character) {
+      throw new Error('Character not initialized');
     }
     
-    // Use the campaign object to update the journal
-    await this.campaign.updateCharacterJournal(this.characterName, entry);
+    // Use the character object to update the journal
+    await this.character.updateJournal(entry);
     
     // Update context
-    this.context.journal = this.campaign.getCharacterJournal(this.characterName);
+    this.context.journal = this.character.getJournal();
   }
   
   getCharacterStats(): CharacterStats {
-    if (!this.characterStats) {
+    if (!this.character || !this.characterStats) {
       throw new Error(`Character stats not loaded for ${this.characterName}`);
     }
     return this.characterStats;

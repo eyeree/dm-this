@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import { AgentFactory, AgentType } from '../agents';
-import { CharacterStats } from '../agents/types';
 import { Module } from './module';
 import { Rules } from './rules';
+import { Character } from './character';
 
 export interface CampaignConfig {
   module: string;
@@ -35,6 +35,7 @@ export class Campaign {
   private journalPath: string;
   private _rules: Rules | null = null;
   private _module: Module | null = null;
+  private characters: Map<string, Character> = new Map();
 
   /**
    * Creates a new Campaign instance.
@@ -80,6 +81,8 @@ export class Campaign {
     // Load campaign state
     this.loadCampaignState();
 
+    // Initialize characters
+    this.initializeCharacters();
 
     // Get agent factory instance
     this.agentFactory = AgentFactory.getInstance();
@@ -166,106 +169,35 @@ export class Campaign {
   }
 
   /**
-   * Gets a character's stats.
-   * @param characterName The character name
+   * Initialize characters from the campaign configuration
    */
-  getCharacterStats(characterName: string): CharacterStats | null {
-    const statsPath = path.join(this.campaignPath, `character-stats-${characterName}.md`);
-    if (fs.existsSync(statsPath)) {
-      return this.parseCharacterStats(statsPath, characterName);
-    }
-    return null;
-  }
-
-  /**
-   * Gets a character's journal content.
-   * @param characterName The character name
-   */
-  getCharacterJournal(characterName: string): string {
-    const journalPath = path.join(this.campaignPath, `character-journal-${characterName}.md`);
-    if (fs.existsSync(journalPath)) {
-      return fs.readFileSync(journalPath, 'utf-8');
-    }
-    return '';
-  }
-
-  /**
-   * Updates a character's journal with a new entry.
-   * @param characterName The character name
-   * @param entry The new journal entry to append
-   */
-  async updateCharacterJournal(characterName: string, entry: string): Promise<void> {
-    const journalPath = path.join(this.campaignPath, `character-journal-${characterName}.md`);
+  private initializeCharacters(): void {
+    // Clear existing characters
+    this.characters.clear();
     
-    // Get current journal content
-    let journalContent = '';
-    if (fs.existsSync(journalPath)) {
-      journalContent = fs.readFileSync(journalPath, 'utf-8');
-    }
-    
-    // Append new entry
-    const updatedContent = journalContent + '\n\n' + entry;
-    
-    // Write updated journal
-    await fs.promises.writeFile(journalPath, updatedContent, 'utf-8');
-  }
-
-  /**
-   * Parses a character stats file.
-   * @param statsPath Path to the character stats file
-   * @param characterName The character name
-   */
-  private parseCharacterStats(statsPath: string, characterName: string): CharacterStats {
-    const content = fs.readFileSync(statsPath, 'utf-8');
-    
-    // Basic parsing of the markdown file
-    const sections = content.split('# ').filter(Boolean);
-    
-    const stats: Record<string, number> = {};
-    const equipped: string[] = [];
-    const inventory: string[] = [];
-    let backstory = '';
-    
-    for (const section of sections) {
-      const lines = section.split('\n');
-      const sectionName = lines[0].trim();
-      
-      if (sectionName === 'Stats') {
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i].trim();
-          if (line) {
-            const [statName, statValue] = line.split(':').map(s => s.trim());
-            stats[statName] = parseInt(statValue, 10);
-          }
-        }
-      } else if (sectionName === 'Equipped') {
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i].trim();
-          if (line) {
-            equipped.push(line);
-          }
-        }
-      } else if (sectionName === 'Inventory') {
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i].trim();
-          if (line) {
-            inventory.push(line);
-          }
-        }
-      } else if (sectionName === 'Backstory') {
-        backstory = lines.slice(1).join('\n').trim();
+    // Create Character instances for each character in the config
+    if (this.config.characters && Array.isArray(this.config.characters)) {
+      for (const charConfig of this.config.characters) {
+        const character = new Character(charConfig.name, this.campaignPath);
+        this.characters.set(charConfig.name, character);
       }
     }
-    
-    return {
-      name: characterName,
-      backstory,
-      stats,
-      equipped,
-      inventory
-    };
   }
 
+  /**
+   * Gets a character by name
+   * @param characterName The character name
+   */
+  getCharacter(characterName: string): Character {
+    const character = this.characters.get(characterName);
+    if (!character) {
+      // Create the character if it doesn't exist
+      const newCharacter = new Character(characterName, this.campaignPath);
+      this.characters.set(characterName, newCharacter);
+      return newCharacter;
+    }
+    return character;
+  }
 
   /**
    * Initializes the campaign by setting up the AgentFactory and loading the rules and module.
