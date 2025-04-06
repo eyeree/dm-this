@@ -1,5 +1,5 @@
 import { BaseAgent } from './base-agent.js';
-import { AgentType, CharacterStats, MasterAgent } from './types.js';
+import { AgentType, MasterAgent } from './types.js';
 import { Campaign } from '../state/campaign.js';
 
 /**
@@ -30,7 +30,7 @@ export class MasterAgentImpl extends BaseAgent implements MasterAgent {
     
     // Set up context with campaign state
     this.context.campaignState = this.campaign.getCampaignState();
-    this.context.moduleFiles = this.campaign.getModuleFiles();
+    this.context.moduleFilePaths = this.campaign.module.getModuleFilePaths();
     this.context.journal = this.campaign.getJournal();
   }
 
@@ -44,24 +44,6 @@ export class MasterAgentImpl extends BaseAgent implements MasterAgent {
     
     // Update context
     this.context.journal = this.campaign.getJournal();
-  }
-
-  async getCharacterCreationConstraints(): Promise<any> {
-    if (!this.campaign) {
-      throw new Error('Campaign not initialized');
-    }
-    
-    // Use the campaign object to get character creation constraints
-    return this.campaign.getCharacterCreationConstraints();
-  }
-
-  async getPrecreatedCharacters(): Promise<CharacterStats[]> {
-    if (!this.campaign) {
-      throw new Error('Campaign not initialized');
-    }
-    
-    // Use the campaign object to get pre-created characters
-    return this.campaign.getPrecreatedCharacters();
   }
 
   protected getSystemPrompt(context: any): string {

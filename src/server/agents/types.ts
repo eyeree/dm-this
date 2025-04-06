@@ -130,15 +130,6 @@ export interface MasterAgent extends Agent {
    */
   updateJournal(entry: string): Promise<void>;
   
-  /**
-   * Get character creation constraints
-   */
-  getCharacterCreationConstraints(): Promise<any>;
-  
-  /**
-   * Present pre-created characters
-   */
-  getPrecreatedCharacters(): Promise<CharacterStats[]>;
 }
 
 /**
@@ -151,12 +142,6 @@ export interface RuleAgent extends Agent {
    */
   getRuleInterpretation(query: string): Promise<string>;
   
-  /**
-   * Guide character creation
-   * @param constraints Constraints from the master agent
-   * @param description Character description
-   */
-  guideCharacterCreation(constraints: any, description: string): Promise<CharacterStats>;
 }
 
 /**

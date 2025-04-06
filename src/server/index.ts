@@ -84,57 +84,6 @@ app.get('/api/characters', async (_req, res) => {
   }
 });
 
-// Get character creation constraints
-app.get('/api/character-creation/constraints', async (_req, res) => {
-  try {
-    const masterAgent = campaign.getMasterAgent();
-    const constraints = await masterAgent.getCharacterCreationConstraints();
-    
-    res.json({ constraints });
-  } catch (error) {
-    console.error('Error getting character creation constraints:', error);
-    res.status(500).json({ error: 'Failed to get character creation constraints' });
-  }
-});
-
-// Get pre-created characters
-app.get('/api/character-creation/precreated', async (_req, res) => {
-  try {
-    const masterAgent = campaign.getMasterAgent();
-    const characters = await masterAgent.getPrecreatedCharacters();
-    
-    res.json({ characters });
-  } catch (error) {
-    console.error('Error getting pre-created characters:', error);
-    res.status(500).json({ error: 'Failed to get pre-created characters' });
-  }
-});
-
-// Create a new character
-app.post('/api/character-creation', async (req, res) => {
-  try {
-    const { description } = req.body;
-    
-    if (!description) {
-      return res.status(400).json({ error: 'Character description is required' });
-    }
-    
-    const masterAgent = campaign.getMasterAgent();
-    const ruleAgent = campaign.getRuleAgent();
-    
-    // Get character creation constraints
-    const constraints = await masterAgent.getCharacterCreationConstraints();
-    
-    // Guide character creation
-    const character = await ruleAgent.guideCharacterCreation(constraints, description);
-    
-    res.json({ character });
-  } catch (error) {
-    console.error('Error creating character:', error);
-    res.status(500).json({ error: 'Failed to create character' });
-  }
-});
-
 // Send a message to an agent
 app.post('/api/message', async (req, res) => {
   try {

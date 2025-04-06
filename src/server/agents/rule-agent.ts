@@ -1,6 +1,5 @@
 import { BaseAgent } from './base-agent.js';
 import { AgentType, CharacterStats, RuleAgent } from './types.js';
-import { getRuleSetContext } from '../state/rule-set.js';
 import { Campaign } from '../state/campaign.js';
 
 /**
@@ -35,8 +34,7 @@ export class RuleAgentImpl extends BaseAgent implements RuleAgent {
       throw new Error('Campaign not initialized');
     }
     
-    // Get rule context for the query
-    const ruleContext = await getRuleSetContext(this.campaign.getRulesPath(), query);
+    const ruleFilePaths = this.campaign.rules.getRuleFilePaths()
     
     // Create LLM messages for the query
     const llmMessages = [
@@ -47,7 +45,7 @@ export class RuleAgentImpl extends BaseAgent implements RuleAgent {
     ];
     
     // Get response from LLM with rule context
-    const response = await this.sendMessageToLLM(llmMessages, { ruleContext });
+    const response = await this.sendMessageToLLM(llmMessages, { ruleFilePaths });
     
     return response.message.content;
   }
@@ -65,12 +63,11 @@ export class RuleAgentImpl extends BaseAgent implements RuleAgent {
       }
     ];
     
-    // Get rule context for character creation
-    const ruleContext = await getRuleSetContext(this.campaign.getRulesPath(), 'character creation');
+    const ruleFilePaths = this.campaign.rules.getRuleFilePaths()
     
     // Get response from LLM with rule context and constraints
     await this.sendMessageToLLM(llmMessages, { 
-      ruleContext,
+      ruleFilePaths,
       constraints
     });
     

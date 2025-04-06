@@ -2,6 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import { AgentFactory, AgentType } from '../agents';
 import { CharacterStats } from '../agents/types';
+import { Module } from './module';
+import { Rules } from './rules';
 
 export interface CampaignConfig {
   module: string;
@@ -28,12 +30,11 @@ export class Campaign {
     'non-player-characters': []
   };
   private campaignPath: string;
-  private modulePath: string;
-  private rulesPath: string;
   private agentFactory: AgentFactory;
   private statePath: string;
   private journalPath: string;
-  private moduleFiles: string[] = [];
+  private _rules: Rules | null = null;
+  private _module: Module | null = null;
 
   /**
    * Creates a new Campaign instance.
@@ -79,26 +80,11 @@ export class Campaign {
     // Load campaign state
     this.loadCampaignState();
 
-    // Set module and rules paths
-    this.modulePath = path.join(modulesBasePath, this.config.module);
-    this.rulesPath = path.join(rulesBasePath, this.config.rules);
-
-    // Load module files
-    this.loadModuleFiles();
 
     // Get agent factory instance
     this.agentFactory = AgentFactory.getInstance();
   }
 
-  /**
-   * Loads the module PDF files.
-   */
-  private loadModuleFiles(): void {
-    if (fs.existsSync(this.modulePath)) {
-      this.moduleFiles = fs.readdirSync(this.modulePath)
-        .filter(file => file.endsWith('.pdf'));
-    }
-  }
 
   /**
    * Loads the campaign state from the JSON file.
@@ -280,70 +266,48 @@ export class Campaign {
     };
   }
 
-  /**
-   * Gets pre-created characters from the module.
-   */
-  getPrecreatedCharacters(): CharacterStats[] {
-    // This would typically extract character information from the module PDFs
-    // For this implementation, we'll return a simplified example
-    return [
-      {
-        name: 'Thorgrim',
-        backstory: 'A dwarf fighter from the mountains, seeking glory and gold.',
-        stats: {
-          'Strength': 16,
-          'Dexterity': 12,
-          'Constitution': 18,
-          'Intelligence': 10,
-          'Wisdom': 14,
-          'Charisma': 8
-        },
-        equipped: ['Chain Mail', 'Battle Axe', 'Shield'],
-        inventory: ['Backpack', 'Bedroll', 'Rations x5', 'Waterskin', 'Torch x3']
-      },
-      {
-        name: 'Elindra',
-        backstory: 'An elven wizard with a thirst for arcane knowledge.',
-        stats: {
-          'Strength': 8,
-          'Dexterity': 16,
-          'Constitution': 12,
-          'Intelligence': 18,
-          'Wisdom': 14,
-          'Charisma': 10
-        },
-        equipped: ['Robes', 'Staff', 'Spellbook'],
-        inventory: ['Backpack', 'Component Pouch', 'Scroll Case', 'Ink and Quill', 'Parchment x10']
-      }
-    ];
-  }
 
   /**
-   * Gets character creation constraints.
-   */
-  getCharacterCreationConstraints(): any {
-    // In a real implementation, this would be derived from the module and rules
-    return {
-      description: 'Characters must be level 1 and use the standard array for ability scores.',
-      allowedLevels: [1, 2, 3],
-      allowedRaces: ['Human', 'Elf', 'Dwarf', 'Halfling'],
-      allowedClasses: ['Fighter', 'Wizard', 'Cleric', 'Rogue']
-    };
-  }
-
-  /**
-   * Initializes the campaign by setting up the AgentFactory.
+   * Initializes the campaign by setting up the AgentFactory and loading the rules and module.
    */
   async initialize(): Promise<void> {
     try {
+      // Load the rules
+      this._rules = await Rules.loadById(this.config.rules);
+      
+      // Load the module
+      this._module = await Module.loadById(this.config.module);
+      
+      // Initialize the agent factory
       await this.agentFactory.initialize({
         campaign: this
       });
+      
       console.log('Campaign initialized successfully');
     } catch (error) {
       console.error('Error initializing campaign:', error);
       throw error;
     }
+  }
+  
+  /**
+   * Gets the rules for this campaign.
+   */
+  get rules(): Rules {
+    if (!this._rules) {
+      throw new Error('Campaign rules not initialized. Call initialize() first.');
+    }
+    return this._rules;
+  }
+
+  /**
+   * Gets the module for this campaign.
+   */
+  get module(): Module {
+    if (!this._module) {
+      throw new Error('Campaign module not initialized. Call initialize() first.');
+    }
+    return this._module;
   }
 
   /**
@@ -384,38 +348,4 @@ export class Campaign {
     return this.agentFactory.getAgent(type, name);
   }
 
-  /**
-   * Gets the campaign configuration.
-   */
-  getConfig(): CampaignConfig {
-    return { ...this.config };
-  }
-
-  /**
-   * Gets the campaign path.
-   */
-  getCampaignPath(): string {
-    return this.campaignPath;
-  }
-
-  /**
-   * Gets the module path.
-   */
-  getModulePath(): string {
-    return this.modulePath;
-  }
-
-  /**
-   * Gets the rules path.
-   */
-  getRulesPath(): string {
-    return this.rulesPath;
-  }
-
-  /**
-   * Gets the module files.
-   */
-  getModuleFiles(): string[] {
-    return [...this.moduleFiles];
-  }
 }
