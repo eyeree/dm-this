@@ -1,16 +1,14 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import { BaseAgent } from './base-agent';
 import { AgentType, CharacterAgent, CharacterStats } from './types';
+import { Campaign } from '../state/campaign';
 
 /**
  * Character agent implementation
  */
 export class CharacterAgentImpl extends BaseAgent implements CharacterAgent {
-  private campaignDirectory: string = '';
+  private campaign: Campaign | null = null;
   private characterName: string = '';
   private characterStats: CharacterStats | null = null;
-  private journalPath: string = '';
   
   constructor(name: string) {
     const systemPrompt = `You are roleplaying a character in a tabletop role-playing game.
@@ -27,39 +25,36 @@ export class CharacterAgentImpl extends BaseAgent implements CharacterAgent {
   async initialize(context: any): Promise<void> {
     await super.initialize(context);
     
-    this.campaignDirectory = context.campaignDirectory;
+    // Store the campaign object
+    this.campaign = context.campaign;
+    
+    if (!this.campaign) {
+      throw new Error('Campaign object is required for CharacterAgent initialization');
+    }
+    
     this.characterName = context.characterName || this.name;
-    this.journalPath = path.join(this.campaignDirectory, `character-journal-${this.characterName}.md`);
     
-    // Load character stats
-    const statsPath = path.join(this.campaignDirectory, `character-stats-${this.characterName}.md`);
-    if (fs.existsSync(statsPath)) {
-      this.characterStats = await this.parseCharacterStats(statsPath);
+    // Load character stats from campaign
+    this.characterStats = this.campaign.getCharacterStats(this.characterName);
+    
+    if (!this.characterStats) {
+      throw new Error(`Character stats not found for ${this.characterName}`);
     }
     
-    // Load journal if it exists
-    if (fs.existsSync(this.journalPath)) {
-      this.context.journal = await fs.promises.readFile(this.journalPath, 'utf-8');
-    } else {
-      this.context.journal = '';
-    }
+    // Load journal from campaign
+    this.context.journal = this.campaign.getCharacterJournal(this.characterName);
   }
   
   async updateJournal(entry: string): Promise<void> {
-    // Get current journal content
-    let journalContent = '';
-    if (fs.existsSync(this.journalPath)) {
-      journalContent = await fs.promises.readFile(this.journalPath, 'utf-8');
+    if (!this.campaign) {
+      throw new Error('Campaign not initialized');
     }
     
-    // Append new entry
-    const updatedContent = journalContent + '\n\n' + entry;
-    
-    // Write updated journal
-    await fs.promises.writeFile(this.journalPath, updatedContent, 'utf-8');
+    // Use the campaign object to update the journal
+    await this.campaign.updateCharacterJournal(this.characterName, entry);
     
     // Update context
-    this.context.journal = updatedContent;
+    this.context.journal = this.campaign.getCharacterJournal(this.characterName);
   }
   
   getCharacterStats(): CharacterStats {
@@ -106,58 +101,5 @@ export class CharacterAgentImpl extends BaseAgent implements CharacterAgent {
     }
     
     return enhancedPrompt;
-  }
-  
-  private async parseCharacterStats(statsPath: string): Promise<CharacterStats> {
-    // In a real implementation, this would parse the markdown file
-    // For this example, we'll return a simplified character
-    const content = await fs.promises.readFile(statsPath, 'utf-8');
-    
-    // Very basic parsing of the markdown file
-    const sections = content.split('# ').filter(Boolean);
-    
-    const stats: Record<string, number> = {};
-    const equipped: string[] = [];
-    const inventory: string[] = [];
-    let backstory = '';
-    
-    for (const section of sections) {
-      const lines = section.split('\n');
-      const sectionName = lines[0].trim();
-      
-      if (sectionName === 'Stats') {
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i].trim();
-          if (line) {
-            const [statName, statValue] = line.split(':').map(s => s.trim());
-            stats[statName] = parseInt(statValue, 10);
-          }
-        }
-      } else if (sectionName === 'Equipped') {
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i].trim();
-          if (line) {
-            equipped.push(line);
-          }
-        }
-      } else if (sectionName === 'Inventory') {
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i].trim();
-          if (line) {
-            inventory.push(line);
-          }
-        }
-      } else if (sectionName === 'Backstory') {
-        backstory = lines.slice(1).join('\n').trim();
-      }
-    }
-    
-    return {
-      name: this.characterName,
-      backstory,
-      stats,
-      equipped,
-      inventory
-    };
   }
 }

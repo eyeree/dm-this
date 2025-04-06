@@ -1,17 +1,12 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import { BaseAgent } from './base-agent.js';
 import { AgentType, CharacterStats, MasterAgent } from './types.js';
+import { Campaign } from '../state/campaign.js';
 
 /**
  * Master agent implementation
  */
 export class MasterAgentImpl extends BaseAgent implements MasterAgent {
-  private campaignDirectory: string = '';
-  private moduleDirectory: string = '';
-  private journalPath: string = '';
-  // @ts-ignore
-  private campaignData: any = {};
+  private campaign: Campaign | null = null;
 
   constructor(name: string = 'Game Master') {
     const systemPrompt = `You are the Game Master for a tabletop role-playing game. 
@@ -26,110 +21,47 @@ export class MasterAgentImpl extends BaseAgent implements MasterAgent {
   async initialize(context: any): Promise<void> {
     await super.initialize(context);
     
-    this.campaignDirectory = context.campaignDirectory;
-    this.moduleDirectory = context.moduleDirectory;
-    this.journalPath = path.join(this.campaignDirectory, 'campaign-journal.md');
+    // Store the campaign object
+    this.campaign = context.campaign;
     
-    // Load campaign data
-    const campaignPath = path.join(this.campaignDirectory, 'campaign.yaml');
-    if (fs.existsSync(campaignPath)) {
-      this.campaignData = await this.loadYamlFile(campaignPath);
-    } else {
-      this.campaignData = { 
-        'player-characters': [],
-        'non-player-characters': []
-      };
+    if (!this.campaign) {
+      throw new Error('Campaign object is required for MasterAgent initialization');
     }
     
-    // Load module content
-    if (fs.existsSync(this.moduleDirectory)) {
-      const moduleFiles = fs.readdirSync(this.moduleDirectory)
-        .filter(file => file.endsWith('.pdf'));
-      
-      this.context.moduleFiles = moduleFiles;
-    }
-    
-    // Load journal if it exists
-    if (fs.existsSync(this.journalPath)) {
-      this.context.journal = await fs.promises.readFile(this.journalPath, 'utf-8');
-    } else {
-      this.context.journal = '';
-    }
+    // Set up context with campaign state
+    this.context.campaignState = this.campaign.getCampaignState();
+    this.context.moduleFiles = this.campaign.getModuleFiles();
+    this.context.journal = this.campaign.getJournal();
   }
 
   async updateJournal(entry: string): Promise<void> {
-    // Get current journal content
-    let journalContent = '';
-    if (fs.existsSync(this.journalPath)) {
-      journalContent = await fs.promises.readFile(this.journalPath, 'utf-8');
+    if (!this.campaign) {
+      throw new Error('Campaign not initialized');
     }
     
-    // Append new entry
-    const updatedContent = journalContent + '\n\n' + entry;
-    
-    // Write updated journal
-    await fs.promises.writeFile(this.journalPath, updatedContent, 'utf-8');
+    // Use the campaign object to update the journal
+    await this.campaign.updateJournal(entry);
     
     // Update context
-    this.context.journal = updatedContent;
+    this.context.journal = this.campaign.getJournal();
   }
 
   async getCharacterCreationConstraints(): Promise<any> {
-    // Create LLM messages to get character creation constraints
-    const llmMessages = [
-      {
-        role: 'user',
-        content: 'What are the constraints for creating a new character in this campaign?'
-      }
-    ];
+    if (!this.campaign) {
+      throw new Error('Campaign not initialized');
+    }
     
-    // Get response from LLM
-    const response = await this.sendMessageToLLM(llmMessages);
-    
-    // Parse constraints from response
-    // This is a simplified implementation - in a real system, you might want to
-    // structure this more formally
-    return {
-      description: response.message.content,
-      allowedLevels: [1, 2, 3], // Example constraint
-      allowedRaces: ['Human', 'Elf', 'Dwarf', 'Halfling'], // Example constraint
-      allowedClasses: ['Fighter', 'Wizard', 'Cleric', 'Rogue'] // Example constraint
-    };
+    // Use the campaign object to get character creation constraints
+    return this.campaign.getCharacterCreationConstraints();
   }
 
   async getPrecreatedCharacters(): Promise<CharacterStats[]> {
-    // This would typically extract character information from the module PDFs
-    // For this implementation, we'll return a simplified example
-    return [
-      {
-        name: 'Thorgrim',
-        backstory: 'A dwarf fighter from the mountains, seeking glory and gold.',
-        stats: {
-          'Strength': 16,
-          'Dexterity': 12,
-          'Constitution': 18,
-          'Intelligence': 10,
-          'Wisdom': 14,
-          'Charisma': 8
-        },
-        equipped: ['Chain Mail', 'Battle Axe', 'Shield'],
-        inventory: ['Backpack', 'Bedroll', 'Rations x5', 'Waterskin', 'Torch x3']
-      },
-      {
-        name: 'Elindra',
-        backstory: 'An elven wizard with a thirst for arcane knowledge.',
-        stats: {
-          'Strength': 8,
-          'Dexterity': 16,
-          'Constitution': 12,
-          'Intelligence': 18,
-          'Wisdom': 14,
-          'Charisma': 10
-        },
-        equipped: ['Robes', 'Staff', 'Spellbook'],
-        inventory: ['Backpack', 'Component Pouch', 'Scroll Case', 'Ink and Quill', 'Parchment x10']
-      }
-    ];
+    if (!this.campaign) {
+      throw new Error('Campaign not initialized');
+    }
+    
+    // Use the campaign object to get pre-created characters
+    return this.campaign.getPrecreatedCharacters();
   }
 
   protected getSystemPrompt(context: any): string {
@@ -168,18 +100,5 @@ export class MasterAgentImpl extends BaseAgent implements MasterAgent {
     return enhancedPrompt;
   }
 
-  private async loadYamlFile(filePath: string): Promise<any> {
-    // In a real implementation, you would use a YAML parser
-    // For this example, we'll just return a placeholder
-    return { 
-      'player-characters': [],
-      'non-player-characters': []
-    };
-  }
-
-  private async sendMessageToLLM(messages: any[]): Promise<any> {
-    // Use the LLM service to send a message
-    const { sendMessage } = await import('../llm/index.js');
-    return sendMessage(messages, this.getSystemPrompt(this.context));
-  }
+  // This method was removed as it's no longer needed with the Campaign object handling state
 }

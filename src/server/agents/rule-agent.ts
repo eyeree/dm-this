@@ -1,12 +1,13 @@
 import { BaseAgent } from './base-agent.js';
 import { AgentType, CharacterStats, RuleAgent } from './types.js';
 import { getRuleSetContext } from '../state/rule-set.js';
+import { Campaign } from '../state/campaign.js';
 
 /**
  * Rule agent implementation
  */
 export class RuleAgentImpl extends BaseAgent implements RuleAgent {
-  private rulesDirectory: string = '';
+  private campaign: Campaign | null = null;
   
   constructor(name: string = 'Rule Lawyer') {
     const systemPrompt = `You are an expert at analyzing role playing game rules and answering player questions.
@@ -21,12 +22,21 @@ export class RuleAgentImpl extends BaseAgent implements RuleAgent {
   async initialize(context: any): Promise<void> {
     await super.initialize(context);
     
-    this.rulesDirectory = context.rulesDirectory;
+    // Store the campaign object
+    this.campaign = context.campaign;
+    
+    if (!this.campaign) {
+      throw new Error('Campaign object is required for RuleAgent initialization');
+    }
   }
   
   async getRuleInterpretation(query: string): Promise<string> {
+    if (!this.campaign) {
+      throw new Error('Campaign not initialized');
+    }
+    
     // Get rule context for the query
-    const ruleContext = await getRuleSetContext(this.rulesDirectory, query);
+    const ruleContext = await getRuleSetContext(this.campaign.getRulesPath(), query);
     
     // Create LLM messages for the query
     const llmMessages = [
@@ -43,6 +53,10 @@ export class RuleAgentImpl extends BaseAgent implements RuleAgent {
   }
   
   async guideCharacterCreation(constraints: any, description: string): Promise<CharacterStats> {
+    if (!this.campaign) {
+      throw new Error('Campaign not initialized');
+    }
+    
     // Create LLM messages for character creation
     const llmMessages = [
       {
@@ -52,7 +66,7 @@ export class RuleAgentImpl extends BaseAgent implements RuleAgent {
     ];
     
     // Get rule context for character creation
-    const ruleContext = await getRuleSetContext(this.rulesDirectory, 'character creation');
+    const ruleContext = await getRuleSetContext(this.campaign.getRulesPath(), 'character creation');
     
     // Get response from LLM with rule context and constraints
     await this.sendMessageToLLM(llmMessages, { 

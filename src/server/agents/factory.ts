@@ -2,6 +2,7 @@ import { Agent, AgentType, CharacterAgent, MasterAgent, RuleAgent } from './type
 import { MasterAgentImpl } from './master-agent';
 import { RuleAgentImpl } from './rule-agent';
 import { CharacterAgentImpl } from './character-agent';
+import { Campaign } from '../state/campaign';
 
 /**
  * Factory for creating and managing agents
@@ -25,35 +26,35 @@ export class AgentFactory {
   }
   
   /**
-   * Initialize the agent factory with configuration
-   * @param config Configuration for the agents
+   * Initialize the agent factory with a campaign
+   * @param config Configuration containing the campaign
    */
   public async initialize(config: {
-    campaignDirectory: string;
-    moduleDirectory: string;
-    rulesDirectory: string;
+    campaign: Campaign;
   }): Promise<void> {
+    const campaign = config.campaign;
+    
     // Initialize master agent
     this.masterAgent = new MasterAgentImpl();
     await this.masterAgent.initialize({
-      campaignDirectory: config.campaignDirectory,
-      moduleDirectory: config.moduleDirectory
+      campaign
     });
     
     // Initialize rule agent
     this.ruleAgent = new RuleAgentImpl();
     await this.ruleAgent.initialize({
-      rulesDirectory: config.rulesDirectory
+      campaign
     });
     
     // Initialize character agents for all player characters and NPCs
-    // This would typically be done by reading the campaign.yaml file
+    // This would typically be done by reading the campaign state
     // For this example, we'll just initialize a sample character
-    const sampleCharacter = new CharacterAgentImpl('Blageron');
-    await sampleCharacter.initialize({
-      campaignDirectory: config.campaignDirectory
-    });
-    this.characterAgents.set('Blageron', sampleCharacter);
+    // const sampleCharacter = new CharacterAgentImpl('Blageron');
+    // await sampleCharacter.initialize({
+    //   campaign,
+    //   characterName: 'Blageron'
+    // });
+    // this.characterAgents.set('Blageron', sampleCharacter);
   }
   
   /**
@@ -109,9 +110,16 @@ export class AgentFactory {
       throw new Error('Master agent not initialized');
     }
     
+    // Get the campaign from the master agent
+    const masterAgentImpl = this.masterAgent as MasterAgentImpl;
+    const campaign = (masterAgentImpl as any).campaign as Campaign;
+    if (!campaign) {
+      throw new Error('Campaign not initialized in master agent');
+    }
+    
     const agent = new CharacterAgentImpl(name);
     await agent.initialize({
-      campaignDirectory: (this.masterAgent as any).campaignDirectory || '',
+      campaign,
       characterName: name,
       player
     });

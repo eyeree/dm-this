@@ -1,7 +1,8 @@
-Review the contents of ./README.md before processing any request. This fill describes the 
-overall structure and requirements for the project. All changes made must be consistent 
-what what is described in that file, unless you are explicitly asked to update the project
-design or requirements, in which case the README.md file should be updated.
+Review the contents of ./README.md before processing any request. This fill describes the overall structure and
+requirements for the project. All changes made must be consistent what what is described in that file, unless you are
+explicitly asked to update the project design or requirements, in which case the README.md file should be updated.
 
-After making changes, run "npm run build" to be sure there are no build errors. If there
-are errors, fix them.
+When writing typescript code do not use the "any" unless there is absolutely no good alternative. Always define and use
+an appropriate typescript type instead of using "any".
+
+After making changes, run "npm run build" to be sure there are no build errors. If there are errors, fix them.
