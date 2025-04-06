@@ -2,8 +2,6 @@
  * Types for the agent system
  */
 
-import { LLMMessage } from "../llm/types";
-
 /**
  * Agent types
  */

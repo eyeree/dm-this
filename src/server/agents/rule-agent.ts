@@ -1,5 +1,3 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import { BaseAgent } from './base-agent.js';
 import { AgentType, CharacterStats, RuleAgent } from './types.js';
 import { getRuleSetContext } from '../state/rule-set.js';
@@ -57,7 +55,7 @@ export class RuleAgentImpl extends BaseAgent implements RuleAgent {
     const ruleContext = await getRuleSetContext(this.rulesDirectory, 'character creation');
     
     // Get response from LLM with rule context and constraints
-    const response = await this.sendMessageToLLM(llmMessages, { 
+    await this.sendMessageToLLM(llmMessages, { 
       ruleContext,
       constraints
     });

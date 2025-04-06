@@ -43,7 +43,7 @@ interface VisibilityControlsProps {
 // Token component for map display
 const Token: React.FC<TokenProps> = ({ token, onMove, onSelect, isSelected }) => {
   const tokenRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const [ , setIsDragging] = useState(false);
   const [position, setPosition] = useState({ x: token.x, y: token.y });
   
   useEffect(() => {
@@ -445,6 +445,7 @@ const App: React.FC = () => {
         throw new Error('Failed to update token position');
       }
       
+      // @ts-ignore
       const data = await response.json();
       
       // Update local state

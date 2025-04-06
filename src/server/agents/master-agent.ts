@@ -10,6 +10,7 @@ export class MasterAgentImpl extends BaseAgent implements MasterAgent {
   private campaignDirectory: string = '';
   private moduleDirectory: string = '';
   private journalPath: string = '';
+  // @ts-ignore
   private campaignData: any = {};
 
   constructor(name: string = 'Game Master') {
