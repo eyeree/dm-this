@@ -90,13 +90,14 @@ identified by the DM_THIS_CAMPAIGN environment variable.
 
 The server implements multiple independent LLM agents, each specialized for a their task:
 
-* **master agent** - this is the primary agent that drives interactions with other agents. The game master is provided the
-  PDF(s) from the content/module directory and data from the campaign subdirectory as context. This agent interacts with
-  players though a shared chat channel exposed via the web UI. The master agent has four modes of operation (really four
-  distinct agents): 
+* **master agent** - this is the primary agent that drives interactions with other agents. The game master is provided
+  the PDF(s) from the content/module directory and data from the campaign subdirectory as context. This agent interacts
+  with players though a shared chat channel exposed via the web UI. The master agent has four modes of operation (really
+  four distinct agents): 
   
     * **Setup** - Character selection/creation, then campaign introduction and initial scene description.
-    * **Exploration** - Describing environments and responding to character inputs in relatively unstructured situations.
+    * **Exploration** - Describing environments and responding to character inputs in relatively unstructured
+      situations.
     * **Encounter** - Describing NPC actions and responding to character actions in a structured turn based situation.
     * **Finished** - Summarizes a campaign upon completion, allows players to ask about encounters or choices not made.
 
@@ -123,8 +124,8 @@ character actions that should be recorded. Compresses older journal entries when
 ### LLM Encapsulation
 
 LLM functionality is encapsulated in an abstraction layer that supports multi-model inputs and outputs and tool use
-patterns. The intent of this abstraction layer is to allow different models to be used in the future, as well as for specific
-tasks or agents if needed. 
+patterns. The intent of this abstraction layer is to allow different models to be used in the future, as well as for
+specific tasks or agents if needed. 
 
 This interface supports prompt/context caching, but the actual implementation for a given LLM may re-upload this data
 instead of using server side caching when it is not available.
@@ -200,8 +201,9 @@ exploration mode state shared with players, or can cause the master agent to go 
 
 Encounter mode is similar to exploration mode, but with the addition of keeping track of turns and events that are
 triggered on future turns (such as a condition on a character expiring) and a strict ordering of the actions taken by
-characters within a turn (i.e. initiative order as defined by the active rule set). Each character's actions during their
-turn are also tracked and limited in accordance to the rules (e.g. movement limits, number of attacks allowed, etc.)
+characters within a turn (i.e. initiative order as defined by the active rule set). Each character's actions during
+their turn are also tracked and limited in accordance to the rules (e.g. movement limits, number of attacks allowed,
+etc.)
 
 ### Finished Mode
 

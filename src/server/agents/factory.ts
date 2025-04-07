@@ -1,4 +1,4 @@
-import { Agent, AgentType, CharacterAgent, MasterAgent, RuleAgent } from './types';
+import { Agent, AgentType, CharacterAgent, MasterAgent, RulesAgent } from './types';
 import { MasterAgentImpl } from './master-agent';
 import { RuleAgentImpl } from './rule-agent';
 import { CharacterAgentImpl } from './character-agent';
@@ -8,60 +8,29 @@ import { Campaign } from '../state/campaign';
  * Factory for creating and managing agents
  */
 export class AgentFactory {
-  private static instance: AgentFactory;
-  private masterAgent: MasterAgent | null = null;
-  private ruleAgent: RuleAgent | null = null;
+  private masterAgent: MasterAgent;
+  private rulesAgent: RulesAgent;
   private characterAgents: Map<string, CharacterAgent> = new Map();
-  private campaign: Campaign | null = null;
   
-  private constructor() {}
-  
-  /**
-   * Get the singleton instance of the agent factory
-   */
-  public static getInstance(): AgentFactory {
-    if (!AgentFactory.instance) {
-      AgentFactory.instance = new AgentFactory();
-    }
-    return AgentFactory.instance;
-  }
-  
-  /**
-   * Initialize the agent factory with a campaign
-   * @param config Configuration containing the campaign
-   */
-  public initialize(config: {
-    campaign: Campaign;
-  }): void {
-    this.campaign = config.campaign;
-    
-    // Initialize master agent
+  constructor(
+    private readonly campaign:Campaign
+  ) {
     this.masterAgent = new MasterAgentImpl(this.campaign);
-    
-    // Initialize rule agent
-    this.ruleAgent = new RuleAgentImpl(this.campaign);
-    
-    // Character agents will be created on demand
+    this.rulesAgent = new RuleAgentImpl(this.campaign);
   }
   
   /**
    * Get the master agent
    */
   public getMasterAgent(): MasterAgent {
-    if (!this.masterAgent) {
-      throw new Error('Master agent not initialized');
-    }
     return this.masterAgent;
   }
   
   /**
    * Get the rule agent
    */
-  public getRuleAgent(): RuleAgent {
-    if (!this.ruleAgent) {
-      throw new Error('Rule agent not initialized');
-    }
-    return this.ruleAgent;
+  public getRuleAgent(): RulesAgent {
+    return this.rulesAgent;
   }
   
   /**

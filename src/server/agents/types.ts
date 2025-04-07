@@ -2,6 +2,8 @@
  * Types for the agent system
  */
 
+import { Character } from "../state/character";
+
 /**
  * Agent types
  */
@@ -81,18 +83,6 @@ export interface MapState {
 }
 
 /**
- * Character stats
- */
-export interface CharacterStats {
-  name: string;
-  player?: string; // If undefined, character is NPC
-  backstory: string;
-  stats: Record<string, number>;
-  equipped: string[];
-  inventory: string[];
-}
-
-/**
  * Agent interface
  */
 export interface Agent {
@@ -129,7 +119,7 @@ export interface MasterAgent extends Agent {
 /**
  * Rule agent interface
  */
-export interface RuleAgent extends Agent {
+export interface RulesAgent extends Agent {
 
   
 }
@@ -138,14 +128,7 @@ export interface RuleAgent extends Agent {
  * Character agent interface
  */
 export interface CharacterAgent extends Agent {
-  /**
-   * Update the character journal
-   * @param entry The entry to add to the journal
-   */
-  updateJournal(entry: string): Promise<void>;
-  
-  /**
-   * Get the character stats
-   */
-  getCharacterStats(): CharacterStats;
+
+  readonly character:Character
+
 }

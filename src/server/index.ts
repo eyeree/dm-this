@@ -40,8 +40,7 @@ let recentRuleInterpretations: string[] = [];
 async function initializeServer() {
   try {
     console.log('Initializing campaign...');
-    campaign = new Campaign(campaignId);
-    await campaign.initialize();
+    campaign = await Campaign.loadById(campaignId);
     console.log('Campaign initialized successfully');
   } catch (error) {
     console.error('Error initializing campaign:', error);
@@ -63,20 +62,7 @@ app.get('/api/status', (_req, res) => {
 app.get('/api/characters', async (_req, res) => {
   try {
     const characterAgents = campaign.getAllCharacterAgents();
-    const characters = characterAgents.map((agent: any) => {
-      try {
-        return agent.getCharacterStats();
-      } catch (error) {
-        return {
-          name: agent.getName(),
-          backstory: 'Character stats not loaded',
-          stats: {},
-          equipped: [],
-          inventory: []
-        };
-      }
-    });
-    
+    const characters = characterAgents.map((agent) => agent.character.name);    
     res.json({ characters });
   } catch (error) {
     console.error('Error getting characters:', error);

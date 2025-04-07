@@ -23,52 +23,28 @@ export class Module {
    * @param directoryPath Path to the module directory
    * @returns A Promise resolving to a Module instance
    */
-  static async load(directoryPath: string): Promise<Module> {    
-    return new Module(directoryPath);
+  private static async load(directoryPath: string): Promise<Module> {
+    const name = path.basename(directoryPath)
+    const moduleFilePaths = await this.getModuleFilePaths(directoryPath)
+    return new Module(name, moduleFilePaths);
   }
   
-  private moduleFiles: string[] = [];
-
-  /**
-   * Creates a new Module instance
-   * @param directoryPath The path to the module directory
-   * @param name The name of the module, defaults to basename of directoryPath
-   */
-  constructor(
-    private directoryPath: string,
-    public readonly name: string = path.basename(directoryPath) 
-  ) {
-    this.loadModuleFiles();
-  }
-
-  /**
-   * Get the directory path for this module
-   */
-  get path(): string {
-    return this.directoryPath;
-  }
-
-  /**
-   * Loads the module PDF files.
-   */
-  private loadModuleFiles(): void {
-    if (fs.existsSync(this.directoryPath)) {
-      this.moduleFiles = fs.readdirSync(this.directoryPath)
-        .filter(file => file.endsWith('.pdf'));
-    }
-  }
-
   /**
    * Gets the module files (PDFs) for this module
    */
-  getModuleFilePaths(): string[] {
-    return this.moduleFiles.map(file => path.join(this.directoryPath, file));
+  private static async getModuleFilePaths(directoryPath:string): Promise<string[]> {
+    return (await fs.promises.readdir(directoryPath))
+      .filter(file => file.endsWith('.pdf'))
+      .map(file => path.join(directoryPath, file));
   }
 
   /**
-   * Gets the raw list of module filenames
+   * Creates a new Module instance
    */
-  getModuleFiles(): string[] {
-    return [...this.moduleFiles];
+  private constructor(
+    public readonly name:string, 
+    public readonly moduleFilePaths:string[]
+  ) {
   }
+
 }

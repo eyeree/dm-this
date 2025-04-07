@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, DragEvent } from 'react';
 import './styles/App.css';
-import { AgentType, ChatMessage, CharacterStats, ImageDisplayTarget, MapToken } from '../server/agents/types';
+import { AgentType, ChatMessage, ImageDisplayTarget, MapToken } from '../server/agents/types';
 
 // Component interfaces
 interface MessageProps {
@@ -23,7 +23,7 @@ interface TokenProps {
 }
 
 interface CharacterSelectorProps {
-  characters: CharacterStats[];
+  characters: string[];
   selectedCharacter: string | null;
   onSelectCharacter: (name: string | null) => void;
   onCreateCharacter: () => void;
@@ -36,7 +36,7 @@ interface VisibilityControlsProps {
     characters: string[];
     players: string[];
   };
-  characters: CharacterStats[];
+  characters: string[];
   onVisibilityChange: (visibility: any) => void;
 }
 
@@ -204,11 +204,11 @@ const CharacterSelector: React.FC<CharacterSelectorProps> = ({
         </div>
         {characters.map(character => (
           <div 
-            key={character.name}
-            className={`character-item ${selectedCharacter === character.name ? 'selected' : ''}`}
-            onClick={() => onSelectCharacter(character.name)}
+            key={character}
+            className={`character-item ${selectedCharacter === character ? 'selected' : ''}`}
+            onClick={() => onSelectCharacter(character)}
           >
-            {character.name}
+            {character}
           </div>
         ))}
       </div>
@@ -273,14 +273,14 @@ const VisibilityControls: React.FC<VisibilityControlsProps> = ({
       </div>
       <h5>Characters</h5>
       {characters.map(character => (
-        <div key={character.name} className="visibility-option">
+        <div key={character} className="visibility-option">
           <input
             type="checkbox"
-            id={`character-${character.name}`}
-            checked={visibility.characters.includes(character.name)}
-            onChange={(e) => handleCharacterChange(character.name, e.target.checked)}
+            id={`character-${character}`}
+            checked={visibility.characters.includes(character)}
+            onChange={(e) => handleCharacterChange(character, e.target.checked)}
           />
-          <label htmlFor={`character-${character.name}`}>{character.name}</label>
+          <label htmlFor={`character-${character}`}>{character}</label>
         </div>
       ))}
     </div>
@@ -296,7 +296,7 @@ const App: React.FC = () => {
   const [ruleMessages, setRuleMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [characters, setCharacters] = useState<CharacterStats[]>([]);
+  const [characters, setCharacters] = useState<string[]>([]);
   const [selectedCharacter, setSelectedCharacter] = useState<string | null>(null);
   const [showCharacterCreation, setShowCharacterCreation] = useState(false);
   const [characterDescription, setCharacterDescription] = useState('');
